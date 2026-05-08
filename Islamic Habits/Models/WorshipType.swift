@@ -1,19 +1,15 @@
 import Foundation
-import SwiftData
 
-@Model
-class WorshipType {
-    var id: UUID
-    var nameKey: String
-    var cadence: String
-    var currentTier: Int
-    var createdAt: Date
+enum WorshipType: String, CaseIterable {
+    case sunnahSalat = "worship.sunnah_salat"
+    case quran = "worship.quran"
     
-    init(nameKey: String, cadence: String) {
-        self.id = UUID()
-        self.nameKey = nameKey
-        self.cadence = cadence
-        self.currentTier = 1
-        self.createdAt = Date()
+    var cadence: String {
+        switch self {
+        case .sunnahSalat: return "daily"
+        case .quran: return "daily"
+        }
     }
+    
+    var nameKey: String { rawValue }
 }

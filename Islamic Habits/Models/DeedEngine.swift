@@ -28,4 +28,8 @@ struct DeedEngine {
         
         return Int(round(Double(activeDays.count) / 30.0 * 100))
     }
+    
+    var readyForNextCommitment: Bool {
+        rhythmLast30Days >= 70
+    }
 }

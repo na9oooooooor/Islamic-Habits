@@ -5,7 +5,6 @@ import SwiftData
 struct Islamic_HabitsApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            WorshipType.self,
             DeedLog.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
@@ -19,7 +18,9 @@ struct Islamic_HabitsApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView()
+                .onAppear {
+                }
         }
         .modelContainer(sharedModelContainer)
     }

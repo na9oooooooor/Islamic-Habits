@@ -3,14 +3,12 @@ import SwiftData
 
 @Model
 class DeedLog {
-    var id: UUID
-    var worshipTypeId: UUID
+    var worshipType: String
     var loggedAt: Date
     var note: String?
     
-    init(worshipTypeId: UUID) {
-        self.id = UUID()
-        self.worshipTypeId = worshipTypeId
+    init(worshipType: WorshipType) {
+        self.worshipType = worshipType.rawValue
         self.loggedAt = Date()
         self.note = nil
     }
