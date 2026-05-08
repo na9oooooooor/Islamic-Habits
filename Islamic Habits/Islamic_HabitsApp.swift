@@ -1,10 +1,3 @@
-//
-//  Islamic_HabitsApp.swift
-//  Islamic Habits
-//
-//  Created by NASER ALALI on 08/05/2026.
-//
-
 import SwiftUI
 import SwiftData
 
@@ -12,7 +5,8 @@ import SwiftData
 struct Islamic_HabitsApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            WorshipType.self,
+            DeedLog.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
