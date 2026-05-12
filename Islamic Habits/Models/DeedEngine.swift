@@ -17,19 +17,19 @@ struct DeedEngine {
     }
     
     // MARK: - Rhythm
-    var rhythmLast30Days: Int {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: today)!
-        
-        let recentLogs = logs.filter { $0.loggedAt >= thirtyDaysAgo && $0.loggedAt < today }
-        
-        let activeDays = Set(recentLogs.map { calendar.startOfDay(for: $0.loggedAt) })
-        
-        return Int(round(Double(activeDays.count) / 30.0 * 100))
-    }
+    var rhythmLast66Days: Int {
+            let calendar = Calendar.current
+            let today = calendar.startOfDay(for: Date())
+            let sixtyDaysAgo = calendar.date(byAdding: .day, value: -66, to: today)!
+            
+            let recentLogs = logs.filter { $0.loggedAt >= sixtyDaysAgo && $0.loggedAt < today }
+            
+            let activeDays = Set(recentLogs.map { calendar.startOfDay(for: $0.loggedAt) })
+            
+            return Int(round(Double(activeDays.count) / 66.0 * 100))
+        }
     
     var readyForNextCommitment: Bool {
-        rhythmLast30Days >= 70
+        rhythmLast66Days >= 70
     }
 }
