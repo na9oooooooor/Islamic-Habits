@@ -29,6 +29,8 @@ struct HomeView: View {
                 IslamicPattern()
                     .ignoresSafeArea()
             
+      
+            
             // Top header
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
@@ -77,15 +79,15 @@ struct HomeView: View {
                 let baseSize = geo.size.width * 0.33
 
                 let orbLayout: [(worship: WorshipType, x: CGFloat, y: CGFloat, multiplier: CGFloat)] = [
-                    (.quran,   0.50, 0.22, 1.0),
-                    (.dhikr,   0.15, 0.35, 0.7),
-                    (.sunnah,  0.82, 0.37, 0.72),
-                    (.duaa,    0.25, 0.52, 0.80),
-                    (.sadaqah, 0.72, 0.54, 0.76),
-                    (.qiyam,   0.18, 0.68, 0.67),
-                    (.masjid,  0.58, 0.70, 0.84),
-                    (.hadith,  0.88, 0.72, 0.63),
-                    (.fasting, 0.35, 0.82, 0.69),
+                    (.quran, 0.50, 0.20, 0.85),
+                    (.dhikr,   0.15, 0.30, 0.7),
+                    (.sunnah,  0.82, 0.32, 0.72),
+                    (.duaa, 0.35, 0.44, 0.80),
+                    (.sadaqah, 0.72, 0.49, 0.76),
+                    (.qiyam,   0.18, 0.63, 0.67),
+                    (.masjid,  0.58, 0.65, 0.84),
+                    (.hadith,  0.88, 0.67, 0.63),
+                    (.fasting, 0.35, 0.77, 0.69),
                 ]
                 ForEach(orbLayout, id: \.worship) { item in
                     let engine = viewModel.engine(for: item.worship)
@@ -110,27 +112,12 @@ struct HomeView: View {
             // Bottom counter
             VStack {
                 Spacer()
-                HStack(spacing: 10) {
-                    Text(localizedString("greeting.today", language: selectedLanguage))
-                        .font(.system(size: 11, weight: .semibold))
-                        .tracking(selectedLanguage == "ar" ? 0 : 2)
-                        .foregroundColor(.white.opacity(0.5))
-                    
-                    Text("\(viewModel.totalDeedsToday)")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.white.opacity(0.95))
-                        .contentTransition(.numericText())
-                        .animation(.spring(), value: viewModel.totalDeedsToday)
-                    
-                    Text(localizedString("greeting.deeds_logged", language: selectedLanguage))
-                        .font(.system(size: 11, weight: .light))
-                        .foregroundColor(.white.opacity(0.5))
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
-                .padding(.bottom, 40)
+                HabitProgressBar(
+                    progress: Double(viewModel.globalRhythm) / 70.0,
+                    deedsToday: viewModel.totalDeedsToday,
+                    selectedLanguage: selectedLanguage
+                )
+                .padding(.bottom, 48)
             }
         }
         .onAppear {
@@ -150,13 +137,7 @@ struct HomeView: View {
         }
         .environment(\.layoutDirection, AppLanguage(rawValue: selectedLanguage)?.layoutDirection ?? .leftToRight)
     }
-    func localizedString(_ key: String, language: String) -> String {
-        guard let path = Bundle.main.path(forResource: language, ofType: "lproj"),
-              let bundle = Bundle(path: path) else {
-            return key
-        }
-        return NSLocalizedString(key, tableName: nil, bundle: bundle, value: key, comment: "")
-    }
+
     var greetingText: String {
         let hour = Calendar.current.component(.hour, from: Date())
         let key: String

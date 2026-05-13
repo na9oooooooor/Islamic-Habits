@@ -8,6 +8,10 @@ class HomeViewModel {
     
     var allLogs: [DeedLog] = []
     
+    var globalEngine: DeedEngine {
+        DeedEngine(logs: allLogs, worshipType: .quran)
+    }
+    
     var totalDeedsToday: Int {
         let startOfDay = Calendar.current.startOfDay(for: Date())
         let startOfTomorrow = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
@@ -15,11 +19,12 @@ class HomeViewModel {
     }
 
     var isReadyForNextCommitment: Bool {
-        WorshipType.allCases
-            .filter { $0.isActive }
-            .allSatisfy { engine(for: $0).readyForNextCommitment }
+        globalEngine.readyForNextCommitment
     }
 
+    var globalRhythm: Int {
+        globalEngine.rhythmLast66Days
+    }
     
     func engine(for worshipType: WorshipType) -> DeedEngine {
         let worshipLogs = allLogs.filter { $0.worshipType == worshipType.rawValue }
@@ -28,12 +33,10 @@ class HomeViewModel {
     
     func log(worshipType: WorshipType, context: ModelContext) {
         let engine = engine(for: worshipType)
-        print("Tapped: \(worshipType.rawValue) | loggedToday: \(engine.loggedToday) | allLogs count: \(allLogs.count)")
         guard !engine.loggedToday else { return }
         let newLog = DeedLog(worshipType: worshipType)
         context.insert(newLog)
         allLogs.append(newLog)
-        print("After log | allLogs count: \(allLogs.count) | totalDeedsToday: \(totalDeedsToday)")
     }
     
 }

@@ -20,9 +20,9 @@ struct DeedEngine {
     var rhythmLast66Days: Int {
             let calendar = Calendar.current
             let today = calendar.startOfDay(for: Date())
-            let sixtyDaysAgo = calendar.date(byAdding: .day, value: -66, to: today)!
+            let sixtySixDaysAgo = calendar.date(byAdding: .day, value: -66, to: today)!
             
-            let recentLogs = logs.filter { $0.loggedAt >= sixtyDaysAgo && $0.loggedAt < today }
+            let recentLogs = logs.filter { $0.loggedAt >= sixtySixDaysAgo && $0.loggedAt < today }
             
             let activeDays = Set(recentLogs.map { calendar.startOfDay(for: $0.loggedAt) })
             
