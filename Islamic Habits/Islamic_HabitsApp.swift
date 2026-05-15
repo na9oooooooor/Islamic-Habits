@@ -18,7 +18,7 @@ struct Islamic_HabitsApp: App {
 
     var body: some Scene {
         WindowGroup {
-            HomeView()
+            MainTabView()
                 .onAppear {
                 }
         }

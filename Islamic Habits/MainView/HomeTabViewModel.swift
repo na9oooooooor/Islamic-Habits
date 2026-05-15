@@ -1,10 +1,18 @@
+//
+//  MainTabViewModel.swift
+//  Islamic Habits
+//
+//  Created by NASER ALALI on 16/05/2026.
+//
+
+
 import Foundation
 import SwiftData
 import SwiftUI
 
 @MainActor
 @Observable
-class HomeViewModel {
+class HomeTabViewModel {
     
     var allLogs: [DeedLog] = []
     
@@ -25,6 +33,8 @@ class HomeViewModel {
     var globalRhythm: Int {
         globalEngine.rhythmLast66Days
     }
+    
+    
     
     func engine(for worshipType: WorshipType) -> DeedEngine {
         let worshipLogs = allLogs.filter { $0.worshipType == worshipType.rawValue }

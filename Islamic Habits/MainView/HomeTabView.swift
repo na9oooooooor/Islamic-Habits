@@ -3,7 +3,7 @@ import SwiftData
 
 struct HomeView: View {
     
-    @State private var viewModel = HomeViewModel()
+    @State private var viewModel = HomeTabViewModel()
     @Environment(\.modelContext) private var context
     @Query private var allLogs: [DeedLog]
     @AppStorage("dailyGoal") private var dailyGoal: Int = 1
@@ -23,7 +23,21 @@ struct HomeView: View {
             // Background
             Color(red: 0.12, green: 0.09, blue: 0.07)
                 .ignoresSafeArea()
-            // Mosque background
+            
+    var levelText: String {
+                if selectedLanguage == "ar" {
+                    return "\(localizedString("general.a_day", language: selectedLanguage)) \(dailyGoal > 1 ? localizedString("general.deeds", language: selectedLanguage) : localizedString("general.deed", language: selectedLanguage)) \(dailyGoal)  ·  \(localizedString("general.level", language: selectedLanguage)) \(dailyGoal)"
+                } else {
+                    return "\(localizedString("general.level", language: selectedLanguage)) \(dailyGoal)  ·  \(dailyGoal) \(dailyGoal > 1 ? localizedString("general.deeds", language: selectedLanguage) : localizedString("general.deed", language: selectedLanguage)) \(localizedString("general.a_day", language: selectedLanguage))"
+                }
+            }
+            
+            var formattedDate: String {
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: selectedLanguage)
+                formatter.dateFormat = "EEEE, d MMMM"
+                return formatter.string(from: Date()).uppercased()
+            }
           
             
                 IslamicPattern()
@@ -35,18 +49,21 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(Date().formatted(.dateTime.weekday(.wide).month(.wide).day()))
+                        Text(formattedDate)
                             .font(.system(size: 11, weight: .medium))
-                            .tracking(2)
+                            .tracking(selectedLanguage == "ar" ? 0 : 2)
                             .foregroundColor(.white.opacity(0.5))
                             .textCase(.uppercase)
-                            .environment(\.locale, Locale(identifier: selectedLanguage))
 
                         Text(greetingText)
                             .font(.system(size: 28, weight: .light))
                             .italic()
                             .foregroundColor(.white.opacity(0.9))
                             .environment(\.locale, Locale(identifier: selectedLanguage))
+                       
+                        Text(levelText)
+                            .font(.system(size: 12, weight: .light))
+                            .foregroundColor(.white.opacity(0.4))
                     }
                     Spacer()
                     // Language button placeholder

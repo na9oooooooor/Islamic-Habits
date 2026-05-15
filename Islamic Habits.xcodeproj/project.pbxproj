@@ -11,7 +11,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		704744992FAE0B78006263FB /* Exceptions for "Islamic Habits" folder in "Islamic Habits" target */ = {
+		70FE6E442FB7C7CF00127810 /* Exceptions for "Islamic Habits" folder in "Islamic Habits" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -21,10 +21,10 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		7047448E2FAE0B76006263FB /* Islamic Habits */ = {
+		70FE6E352FB7C7CF00127810 /* Islamic Habits */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				704744992FAE0B78006263FB /* Exceptions for "Islamic Habits" folder in "Islamic Habits" target */,
+				70FE6E442FB7C7CF00127810 /* Exceptions for "Islamic Habits" folder in "Islamic Habits" target */,
 			);
 			path = "Islamic Habits";
 			sourceTree = "<group>";
@@ -45,7 +45,7 @@
 		704744832FAE0B76006263FB = {
 			isa = PBXGroup;
 			children = (
-				7047448E2FAE0B76006263FB /* Islamic Habits */,
+				70FE6E352FB7C7CF00127810 /* Islamic Habits */,
 				7047448D2FAE0B76006263FB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -74,7 +74,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				7047448E2FAE0B76006263FB /* Islamic Habits */,
+				70FE6E352FB7C7CF00127810 /* Islamic Habits */,
 			);
 			name = "Islamic Habits";
 			packageProductDependencies = (
