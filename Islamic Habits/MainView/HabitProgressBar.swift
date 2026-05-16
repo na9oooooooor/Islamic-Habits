@@ -4,6 +4,8 @@ struct HabitProgressBar: View {
     let progress: Double
     let deedsToday: Int
     let selectedLanguage: String
+    let canUndo: Bool
+    let onUndo: () -> Void
     
     @State private var isGlowing = false
     
@@ -24,10 +26,26 @@ struct HabitProgressBar: View {
     
     var body: some View {
         VStack(spacing: 10) {
-            Text(message)
-                .font(.system(size: 11, weight: .light))
-                .tracking(1.5)
-                .foregroundColor(.white.opacity(0.4))
+            ZStack {
+                Text(message)
+                    .font(.system(size: 11, weight: .light))
+                    .tracking(1.5)
+                    .foregroundColor(.white.opacity(0.4))
+                    .frame(maxWidth: .infinity, alignment: .center)
+                
+                if canUndo {
+                    HStack {
+                        Spacer()
+                        Button {
+                            onUndo()
+                        } label: {
+                            Image(systemName: "arrow.uturn.backward")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.4))
+                        }
+                    }
+                }
+            }
             
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -62,6 +80,7 @@ struct HabitProgressBar: View {
             Text("\(deedsToday) \(localizedString("habit.logged_today", language: selectedLanguage))")                .font(.system(size: 11, weight: .light))
                 .tracking(1.0)
                 .foregroundColor(.white.opacity(0.3))
+            
         }
         .padding(.horizontal, 32)
         .onAppear {

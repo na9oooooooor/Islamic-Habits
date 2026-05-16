@@ -6,8 +6,8 @@ struct DeedEngine {
     
     // MARK: - Today
     var loggedToday: Bool {
-        let startOfDay = Calendar.current.startOfDay(for: Date())
-        let startOfTomorrow = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+        let startOfDay = startOfIslamicDay
+        let startOfTomorrow = startOfIslamicTomorrow
         return logs.contains { $0.loggedAt >= startOfDay && $0.loggedAt < startOfTomorrow }
     }
     

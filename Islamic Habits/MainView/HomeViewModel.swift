@@ -9,20 +9,20 @@
 import Foundation
 import SwiftData
 import SwiftUI
+internal import Combine
 
-@MainActor
-@Observable
-class HomeTabViewModel {
+class HomeViewModel: ObservableObject {
     
-    var allLogs: [DeedLog] = []
-    
+    @Published var allLogs: [DeedLog] = []
+    var isResetting = false
+
     var globalEngine: DeedEngine {
         DeedEngine(logs: allLogs, worshipType: .quran)
     }
     
     var totalDeedsToday: Int {
-        let startOfDay = Calendar.current.startOfDay(for: Date())
-        let startOfTomorrow = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+        let startOfDay = startOfIslamicDay
+        let startOfTomorrow = startOfIslamicTomorrow
         return allLogs.filter { $0.loggedAt >= startOfDay && $0.loggedAt < startOfTomorrow }.count
     }
 
@@ -49,4 +49,28 @@ class HomeTabViewModel {
         allLogs.append(newLog)
     }
     
-}
+    func undoLastLog(context: ModelContext) {
+        let startOfDay = startOfIslamicDay
+        let startOfTomorrow = startOfIslamicTomorrow
+        
+        let todayLogs = allLogs.filter { log in
+            log.loggedAt >= startOfDay && log.loggedAt < startOfTomorrow
+        }
+        
+        let sorted = todayLogs.sorted { $0.loggedAt > $1.loggedAt }
+        
+        guard let latest = sorted.first else { return }
+        
+        context.delete(latest)
+        allLogs.removeAll { $0.id == latest.id }
+    }
+    
+    var canUndo: Bool {
+        let startOfDay = startOfIslamicDay
+        let startOfTomorrow = startOfIslamicTomorrow
+        return allLogs.contains { $0.loggedAt >= startOfDay && $0.loggedAt < startOfTomorrow }
+    }
+    
+   }
+    
+

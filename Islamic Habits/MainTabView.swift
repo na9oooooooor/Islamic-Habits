@@ -3,21 +3,20 @@ import SwiftData
 
 struct MainTabView: View {
     
+    @StateObject private var viewModel = HomeViewModel()
     @State private var selectedTab: Tab = .home
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Content area
             switch selectedTab {
             case .home:
-                HomeView()
+                HomeView(viewModel: viewModel)
             case .calendar:
-                CalendarView()
+                CalendarView(viewModel: viewModel)
             case .settings:
-                SettingsView()
+                SettingsView(viewModel: viewModel)
             }
             
-            // Custom tab bar
             HStack(spacing: 0) {
                 TabBarButton(icon: "house", tab: .home, selectedTab: $selectedTab)
                 TabBarButton(icon: "calendar", tab: .calendar, selectedTab: $selectedTab)
@@ -25,8 +24,14 @@ struct MainTabView: View {
             }
             .padding(.horizontal, 40)
             .padding(.vertical, 12)
-            .background(.ultraThinMaterial)
-            .clipShape(Capsule())
+            .background(
+                Capsule()
+                    .fill(Color(red: 0.18, green: 0.14, blue: 0.10))
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+            )
             .padding(.bottom, 24)
         }
         .ignoresSafeArea()

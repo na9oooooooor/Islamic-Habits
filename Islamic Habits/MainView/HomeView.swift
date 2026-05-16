@@ -3,7 +3,7 @@ import SwiftData
 
 struct HomeView: View {
     
-    @State private var viewModel = HomeTabViewModel()
+    @ObservedObject var viewModel: HomeViewModel
     @Environment(\.modelContext) private var context
     @Query private var allLogs: [DeedLog]
     @AppStorage("dailyGoal") private var dailyGoal: Int = 1
@@ -86,9 +86,13 @@ struct HomeView: View {
                     }
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 16)
+                .padding(.top, 56)
                 Spacer()
             }
+            .padding(.bottom, 100)
+            .padding(.top, 20)
+            
+
             
             // Orbs
             GeometryReader { geo in
@@ -96,15 +100,15 @@ struct HomeView: View {
                 let baseSize = geo.size.width * 0.33
 
                 let orbLayout: [(worship: WorshipType, x: CGFloat, y: CGFloat, multiplier: CGFloat)] = [
-                    (.quran, 0.50, 0.20, 0.85),
-                    (.dhikr,   0.15, 0.30, 0.7),
-                    (.sunnah,  0.82, 0.32, 0.72),
-                    (.duaa, 0.35, 0.44, 0.80),
-                    (.sadaqah, 0.72, 0.49, 0.76),
-                    (.qiyam,   0.18, 0.63, 0.67),
-                    (.masjid,  0.58, 0.65, 0.84),
-                    (.hadith,  0.88, 0.67, 0.63),
-                    (.fasting, 0.35, 0.77, 0.69),
+                    (.quran,   0.50, 0.25, 0.75),
+                    (.dhikr,   0.15, 0.30, 0.60),
+                    (.sunnah,  0.82, 0.32, 0.62),
+                    (.duaa,    0.35, 0.44, 0.70),
+                    (.sadaqah, 0.72, 0.49, 0.66),
+                    (.qiyam,   0.20, 0.59, 0.57),
+                    (.masjid,  0.58, 0.65, 0.74),
+                    (.hadith,  0.88, 0.67, 0.53),
+                    (.fasting, 0.35, 0.77, 0.59),
                 ]
                 ForEach(orbLayout, id: \.worship) { item in
                     let engine = viewModel.engine(for: item.worship)
@@ -132,20 +136,24 @@ struct HomeView: View {
                 HabitProgressBar(
                     progress: Double(viewModel.globalRhythm) / 70.0,
                     deedsToday: viewModel.totalDeedsToday,
-                    selectedLanguage: selectedLanguage
+                    selectedLanguage: selectedLanguage,
+                    canUndo: viewModel.canUndo,
+                    onUndo: { viewModel.undoLastLog(context: context) }
                 )
-                .padding(.bottom, 48)
+                .padding(.bottom, 100)
             }
         }
         .onAppear {
             viewModel.allLogs = allLogs
         }
-        // This watches logs changing
         .onChange(of: allLogs) { _, new in
+            guard !viewModel.isResetting else {
+                viewModel.isResetting = false
+                return
+            }
             viewModel.allLogs = new
         }
 
-        // This watches readiness changing
         .onChange(of: viewModel.isReadyForNextCommitment) { _, isReady in
             if isReady && !hasSeenTierPopup {
                 hasSeenTierPopup = true
@@ -271,11 +279,11 @@ struct OrbView: View {
     }
 }
 
-#Preview {
-    let container = try! ModelContainer(
-        for: DeedLog.self,
-        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-    )
-    return HomeView()
-        .modelContainer(container)
-}
+//#Preview {
+//    let container = try! ModelContainer(
+//        for: DeedLog.self,
+//        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+//    )
+//    return HomeView()
+//        .modelContainer(container)
+//}
