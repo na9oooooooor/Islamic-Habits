@@ -79,6 +79,8 @@ struct SettingsView: View {
                             do {
                                     try modelContext.delete(model: DeedLog.self)
                                     try modelContext.save()
+                                try modelContext.delete(model: DeedLog.self)
+                                try modelContext.save()
                                 viewModel.isResetting = true
                                 viewModel.allLogs = []
                                     print("After delete - allLogs count: \(viewModel.allLogs.count)")

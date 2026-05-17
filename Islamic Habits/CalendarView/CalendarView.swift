@@ -1,21 +1,260 @@
-//
-//  CalendarView.swift
-//  Islamic Habits
-//
-//  Created by NASER ALALI on 16/05/2026.
-//
-
 import SwiftUI
+import SwiftData
 
 struct CalendarView: View {
-    var viewModel: HomeViewModel
-
+    
+    @Query(sort: \DeedLog.loggedAt, order: .reverse) private var allLogs: [DeedLog]
+    @AppStorage("selectedLanguage") private var selectedLanguage: String = AppLanguage.english.rawValue
+    @State private var selectedDay: IdentifiableDate? = nil
+    @State private var displayedMonth: Date = Date()
+    
+    var groupedLogs: [Date: [DeedLog]] {
+        Dictionary(grouping: allLogs) { log in
+            islamicStartOfDay(for: log.loggedAt)
+        }
+    }
+    
+    var sortedDays: [Date] {
+        groupedLogs.keys.sorted { $0 > $1 }
+    }
     
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        ZStack {
+            Color(red: 0.12, green: 0.09, blue: 0.07)
+                .ignoresSafeArea()
+            
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        
+                        CalendarGrid(
+                            month: displayedMonth,
+                            loggedDays: Set(groupedLogs.keys),
+                            selectedLanguage: selectedLanguage,
+                            islamicToday: startOfIslamicDay,
+                            selectedDay: $selectedDay
+                        )
+                        .padding(.top, 60)
+                        .padding(.bottom, 24)
+                        
+                        Divider()
+                            .background(Color.white.opacity(0.08))
+                            .padding(.horizontal, 24)
+                        
+                        if allLogs.isEmpty {
+                            VStack(spacing: 12) {
+                                Text(localizedString("general.nologgs", language: selectedLanguage))
+                                    .font(.system(size: 18, weight: .light))
+                                    .italic()
+                                    .foregroundColor(.white.opacity(0.4))
+                                Text(localizedString("general.nologgsMessage", language: selectedLanguage))
+                                    .font(.system(size: 13, weight: .light))
+                                    .foregroundColor(.white.opacity(0.25))
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 60)
+                        } else {
+                            LazyVStack(alignment: .leading, spacing: 0) {
+                                ForEach(sortedDays, id: \.self) { day in
+                                    DaySection(
+                                        day: day,
+                                        logs: groupedLogs[day] ?? [],
+                                        selectedLanguage: selectedLanguage,
+                                        isHighlighted: selectedDay?.date == day
+                                    )
+                                    .id(day)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.bottom, 100)
+                }
+                .onChange(of: selectedDay) { _, newDay in
+                    guard let day = newDay else { return }
+                    withAnimation {
+                        proxy.scrollTo(day.date, anchor: .top)
+                    }
+                }
+                .sheet(item: $selectedDay) { identifiableDay in
+                    AddPastLogView(day: identifiableDay.date)
+                        .presentationDetents([.fraction(0.6)])
+                }
+            }
+        }
+        
     }
 }
 
-//#Preview {
-//    CalendarView()
-//}
+struct IdentifiableDate: Identifiable, Equatable, Hashable {
+    let id = UUID()
+    let date: Date
+}
+
+struct CalendarGrid: View {
+    let month: Date
+    let loggedDays: Set<Date>
+    let selectedLanguage: String
+    let islamicToday: Date
+    @Binding var selectedDay: IdentifiableDate?
+    @State private var showAddPastLog = false
+
+    private let calendar = Calendar.current
+    private let columns = Array(repeating: GridItem(.flexible()), count: 7)
+    private let weekdaySymbols = ["S", "M", "T", "W", "T", "F", "S"]
+    
+    var daysInMonth: [Date?] {
+        guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: month)),
+              let range = calendar.range(of: .day, in: .month, for: monthStart) else { return [] }
+        
+        let firstWeekday = calendar.component(.weekday, from: monthStart) - 1
+        var days: [Date?] = Array(repeating: nil, count: firstWeekday)
+        
+        for day in range {
+            if let date = calendar.date(byAdding: .day, value: day - 1, to: monthStart) {
+                days.append(date)
+            }
+        }
+        return days
+    }
+    
+    var monthTitle: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: selectedLanguage)
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: month)
+    }
+    
+    var body: some View {
+        
+        VStack(spacing: 16) {
+            Spacer()
+            Text(monthTitle)
+                .font(.system(size: 16, weight: .light))
+                .foregroundColor(.white.opacity(0.7))
+                .frame(maxWidth: .infinity, alignment: .center)
+            Spacer()
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(weekdaySymbols, id: \.self) { symbol in
+                    Text(symbol)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.25))
+                        .frame(maxWidth: .infinity)
+                }
+                
+                ForEach(Array(daysInMonth.enumerated()), id: \.offset) { _, date in
+                    if let date = date {
+                        
+                        let startOfDate = islamicStartOfDay(for: date)
+                        let hasLog = loggedDays.contains(startOfDate)
+                        let isSelected = selectedDay?.date == startOfDate
+                        let isToday = islamicStartOfDay(for: date) == islamicToday
+                        
+                        Button {
+                            print("Tapped date: \(date)")
+                            print("Local date components: \(Calendar.current.dateComponents([.year, .month, .day], from: date))")
+                            selectedDay = IdentifiableDate(date: date)
+                        }label: {
+                            ZStack {
+                                Circle()
+                                    .fill(isSelected ?
+                                        Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.3) :
+                                        Color.clear
+                                    )
+                                    .frame(width: 32, height: 32)
+                                
+                                Text("\(calendar.component(.day, from: date))")
+                                    .font(.system(size: 13, weight: isToday ? .medium : .light))
+                                    .foregroundColor(
+                                        isToday ? Color(red: 0.85, green: 0.72, blue: 0.52) :
+                                        hasLog ? .white.opacity(0.9) :
+                                        .white.opacity(0.25)
+                                    )
+                                
+                                if hasLog {
+                                    Circle()
+                                        .fill(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.7))
+                                        .frame(width: 4, height: 4)
+                                        .offset(y: 12)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .disabled(islamicStartOfDay(for: date) > startOfIslamicDay)
+
+                    } else {
+                        Color.clear
+                            .frame(height: 36)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+}
+
+struct DaySection: View {
+    let day: Date
+    let logs: [DeedLog]
+    let selectedLanguage: String
+    let isHighlighted: Bool
+    
+    @Environment(\.modelContext) private var modelContext
+    var formattedDay: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: selectedLanguage)
+        formatter.dateFormat = "EEEE, d MMMM"
+        return formatter.string(from: day)
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(formattedDay)
+                .font(.system(size: 11, weight: .medium))
+                .tracking(1.5)
+                .foregroundColor(isHighlighted ?
+                    Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.8) :
+                    .white.opacity(0.35)
+                )
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+            
+            ForEach(logs) { log in
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.6))
+                        .frame(width: 6, height: 6)
+                    
+                    Text(WorshipType(rawValue: log.worshipType)?.arabicName ?? log.worshipType)
+                        .font(.system(size: 15, weight: .light))
+                        .foregroundColor(.white.opacity(0.8))
+                    
+                    Spacer()
+                    
+                    Text(log.loggedAt, style: .time)
+                        .font(.system(size: 12, weight: .light))
+                        .foregroundColor(.white.opacity(0.3))
+                    
+                    Button {
+                        modelContext.delete(log)
+                        try? modelContext.save()
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.2))
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 8)
+            }
+            
+            Divider()
+                .background(Color.white.opacity(0.06))
+                .padding(.horizontal, 24)
+        }
+        .background(isHighlighted ?
+            Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.05) :
+            Color.clear
+        )
+    }
+}

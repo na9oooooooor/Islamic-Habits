@@ -12,15 +12,15 @@ struct MainTabView: View {
             case .home:
                 HomeView(viewModel: viewModel)
             case .calendar:
-                CalendarView(viewModel: viewModel)
+                CalendarView()
             case .settings:
                 SettingsView(viewModel: viewModel)
             }
             
             HStack(spacing: 0) {
-                TabBarButton(icon: "house", tab: .home, selectedTab: $selectedTab)
+                TabBarButton(icon: "house.fill", tab: .home, selectedTab: $selectedTab)
                 TabBarButton(icon: "calendar", tab: .calendar, selectedTab: $selectedTab)
-                TabBarButton(icon: "gearshape", tab: .settings, selectedTab: $selectedTab)
+                TabBarButton(icon: "gearshape.fill", tab: .settings, selectedTab: $selectedTab)
             }
             .padding(.horizontal, 40)
             .padding(.vertical, 12)
@@ -57,7 +57,7 @@ struct TabBarButton: View {
         Button {
             selectedTab = tab
         } label: {
-            Image(systemName: isSelected ? "\(icon).fill" : icon)
+            Image(systemName: isSelected ? "\(icon)" : icon)
                 .font(.system(size: 18))
                 .foregroundColor(isSelected ?
                     Color(red: 0.85, green: 0.72, blue: 0.52) :

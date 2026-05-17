@@ -17,3 +17,16 @@ var startOfIslamicDay: Date {
 var startOfIslamicTomorrow: Date {
     return Calendar.current.date(byAdding: .day, value: 1, to: startOfIslamicDay)!
 }
+
+func islamicStartOfDay(for date: Date) -> Date {
+    let calendar = Calendar.current
+    var components = calendar.dateComponents([.year, .month, .day], from: date)
+    components.hour = 2
+    components.minute = 0
+    let boundary = calendar.date(from: components)!
+    
+    if date < boundary {
+        return calendar.date(byAdding: .day, value: -1, to: boundary)!
+    }
+    return boundary
+}

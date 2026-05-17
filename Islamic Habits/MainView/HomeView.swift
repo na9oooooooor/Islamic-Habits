@@ -10,7 +10,6 @@ struct HomeView: View {
     @AppStorage("selectedLanguage") private var selectedLanguage: String = AppLanguage.english.rawValue
     @AppStorage("hasSeenTierPopup") var hasSeenTierPopup: Bool = false
     @AppStorage("upgradeIconVisible") var upgradeIconVisible: Bool = false
-    @State private var showLanguagePicker = false
     
     var dailyGoalMet: Bool {
         viewModel.totalDeedsToday >= dailyGoal
@@ -66,24 +65,7 @@ struct HomeView: View {
                             .foregroundColor(.white.opacity(0.4))
                     }
                     Spacer()
-                    // Language button placeholder
-                    Button {
-                        showLanguagePicker = true
-                    } label: {
-                        Text(AppLanguage(rawValue: selectedLanguage)?.displayName ?? "EN")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.7))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .overlay(
-                                Capsule()
-                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                            )
-                    }
-                    .sheet(isPresented: $showLanguagePicker) {
-                        LanguagePickerView()
-                            .presentationDetents([.fraction(0.4)])
-                    }
+
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 56)
@@ -242,14 +224,11 @@ struct OrbView: View {
             
             // Text
             VStack(spacing: 2) {
-                Text(worship.arabicName)
+                Text(LocalizedStringKey(worship.nameKey))
+                    .environment(\.locale, Locale(identifier: selectedLanguage))
                     .font(.system(size: size * 0.18))
                     .foregroundColor(.white.opacity(0.95))
-                Text(LocalizedStringKey(worship.nameKey))
-                    .font(.system(size: size * 0.13, weight: .light)) // was 0.10
-                    .italic()
-                    .foregroundColor(.white.opacity(0.85)) // was 0.6
-                    .environment(\.locale, Locale(identifier: selectedLanguage))
+                
             }
             .scaleEffect(isPressed ? 1.05 : 1.0)
             // Count badge

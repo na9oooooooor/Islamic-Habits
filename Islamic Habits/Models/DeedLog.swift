@@ -7,9 +7,9 @@ class DeedLog {
     var loggedAt: Date
     var note: String?
     
-    init(worshipType: WorshipType) {
+    init(worshipType: WorshipType, loggedAt: Date = Date()) {
         self.worshipType = worshipType.rawValue
-        self.loggedAt = Date()
+        self.loggedAt = loggedAt
         self.note = nil
     }
 }
