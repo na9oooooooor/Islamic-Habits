@@ -7,6 +7,7 @@ struct CalendarView: View {
     @AppStorage("selectedLanguage") private var selectedLanguage: String = AppLanguage.english.rawValue
     @State private var selectedDay: IdentifiableDate? = nil
     @State private var displayedMonth: Date = Date()
+    @State private var addLogDay: Bool = false
     
     var groupedLogs: [Date: [DeedLog]] {
         Dictionary(grouping: allLogs) { log in
@@ -40,7 +41,23 @@ struct CalendarView: View {
                         Divider()
                             .background(Color.white.opacity(0.08))
                             .padding(.horizontal, 24)
-                        
+                        HStack {
+                            Spacer()
+                            Button {
+                                addLogDay = true
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.white.opacity(0.5))
+                                    .padding(10)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                                    )
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 16)
+                        }
                         if allLogs.isEmpty {
                             VStack(spacing: 12) {
                                 Text(localizedString("general.nologgs", language: selectedLanguage))
@@ -76,9 +93,9 @@ struct CalendarView: View {
                         proxy.scrollTo(day.date, anchor: .top)
                     }
                 }
-                .sheet(item: $selectedDay) { identifiableDay in
-                    AddPastLogView(day: identifiableDay.date)
-                        .presentationDetents([.fraction(0.6)])
+                .sheet(isPresented: $addLogDay) {
+                    AddPastLogView()
+                        .presentationDetents([.fraction(0.7)])
                 }
             }
         }
@@ -151,8 +168,6 @@ struct CalendarGrid: View {
                         let isToday = islamicStartOfDay(for: date) == islamicToday
                         
                         Button {
-                            print("Tapped date: \(date)")
-                            print("Local date components: \(Calendar.current.dateComponents([.year, .month, .day], from: date))")
                             selectedDay = IdentifiableDate(date: date)
                         }label: {
                             ZStack {
@@ -225,15 +240,12 @@ struct DaySection: View {
                         .fill(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.6))
                         .frame(width: 6, height: 6)
                     
-                    Text(WorshipType(rawValue: log.worshipType)?.arabicName ?? log.worshipType)
+                    Text(localizedString(log.worshipType, language: selectedLanguage))
                         .font(.system(size: 15, weight: .light))
                         .foregroundColor(.white.opacity(0.8))
                     
                     Spacer()
                     
-                    Text(log.loggedAt, style: .time)
-                        .font(.system(size: 12, weight: .light))
-                        .foregroundColor(.white.opacity(0.3))
                     
                     Button {
                         modelContext.delete(log)
