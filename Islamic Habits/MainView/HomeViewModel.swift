@@ -1,76 +1,45 @@
-//
-//  MainTabViewModel.swift
-//  Islamic Habits
-//
-//  Created by NASER ALALI on 16/05/2026.
-//
-
-
 import Foundation
 import SwiftData
 import SwiftUI
-internal import Combine
 
-class HomeViewModel: ObservableObject {
+struct HomeViewModel {
     
-    @Published var allLogs: [DeedLog] = []
-    var isResetting = false
-
-    var globalEngine: DeedEngine {
-        DeedEngine(logs: allLogs, worshipType: .quran)
-    }
-    
-    var totalDeedsToday: Int {
-        let startOfDay = startOfIslamicDay
-        let startOfTomorrow = startOfIslamicTomorrow
-        return allLogs.filter { $0.loggedAt >= startOfDay && $0.loggedAt < startOfTomorrow }.count
+    func engine(for worshipType: WorshipType, logs: [DeedLog], dailyGoal: Int) -> DeedEngine {
+        let worshipLogs = logs.filter { $0.worshipType == worshipType.rawValue }
+        return DeedEngine(logs: worshipLogs, worshipType: worshipType, dailyGoal: dailyGoal)
     }
 
-    var isReadyForNextCommitment: Bool {
-        globalEngine.readyForNextCommitment
+    func globalEngine(logs: [DeedLog], dailyGoal: Int) -> DeedEngine {
+        DeedEngine(logs: logs, worshipType: .quran, dailyGoal: dailyGoal)
+    }
+    
+    func totalDeedsToday(logs: [DeedLog]) -> Int {
+        return logs.filter {
+            $0.loggedAt >= startOfIslamicDay && $0.loggedAt < startOfIslamicTomorrow
+        }.count
+    }
+    
+    func globalRhythm(logs: [DeedLog], dailyGoal: Int) -> Int {
+        globalEngine(logs: logs, dailyGoal: dailyGoal).rhythmLast66Days
     }
 
-    var globalRhythm: Int {
-        globalEngine.rhythmLast66Days
+    func isReadyForNextCommitment(logs: [DeedLog], dailyGoal: Int) -> Bool {
+        globalEngine(logs: logs, dailyGoal: dailyGoal).readyForNextCommitment
     }
     
-    
-    
-    func engine(for worshipType: WorshipType) -> DeedEngine {
-        let worshipLogs = allLogs.filter { $0.worshipType == worshipType.rawValue }
-        return DeedEngine(logs: worshipLogs, worshipType: worshipType)
+    func canUndo(logs: [DeedLog]) -> Bool {
+        logs.contains { $0.loggedAt >= startOfIslamicDay && $0.loggedAt < startOfIslamicTomorrow }
     }
     
     func log(worshipType: WorshipType, context: ModelContext) {
-        let engine = engine(for: worshipType)
-        guard !engine.loggedToday else { return }
         let newLog = DeedLog(worshipType: worshipType)
         context.insert(newLog)
-        allLogs.append(newLog)
     }
     
-    func undoLastLog(context: ModelContext) {
-        let startOfDay = startOfIslamicDay
-        let startOfTomorrow = startOfIslamicTomorrow
-        
-        let todayLogs = allLogs.filter { log in
-            log.loggedAt >= startOfDay && log.loggedAt < startOfTomorrow
-        }
-        
+    func undoLastLog(logs: [DeedLog], context: ModelContext) {
+        let todayLogs = logs.filter { $0.loggedAt >= startOfIslamicDay && $0.loggedAt < startOfIslamicTomorrow }
         let sorted = todayLogs.sorted { $0.loggedAt > $1.loggedAt }
-        
         guard let latest = sorted.first else { return }
-        
         context.delete(latest)
-        allLogs.removeAll { $0.id == latest.id }
     }
-    
-    var canUndo: Bool {
-        let startOfDay = startOfIslamicDay
-        let startOfTomorrow = startOfIslamicTomorrow
-        return allLogs.contains { $0.loggedAt >= startOfDay && $0.loggedAt < startOfTomorrow }
-    }
-    
-   }
-    
-
+}

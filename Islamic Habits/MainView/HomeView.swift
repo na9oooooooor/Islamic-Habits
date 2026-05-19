@@ -1,49 +1,58 @@
+
 import SwiftUI
 import SwiftData
 
 struct HomeView: View {
     
-    @ObservedObject var viewModel: HomeViewModel
+    private let viewModel = HomeViewModel()
     @Environment(\.modelContext) private var context
     @Query private var allLogs: [DeedLog]
     @AppStorage("dailyGoal") private var dailyGoal: Int = 1
     @AppStorage("selectedLanguage") private var selectedLanguage: String = AppLanguage.english.rawValue
     @AppStorage("hasSeenTierPopup") var hasSeenTierPopup: Bool = false
     @AppStorage("upgradeIconVisible") var upgradeIconVisible: Bool = false
-    
-    var dailyGoalMet: Bool {
-        viewModel.totalDeedsToday >= dailyGoal
+    @State private var showLanguagePicker = false
+
+
+    var levelText: String {
+        if selectedLanguage == "ar" {
+            return "\(localizedString("general.a_day", language: selectedLanguage)) \(dailyGoal > 1 ? localizedString("general.deeds", language: selectedLanguage) : localizedString("general.deed", language: selectedLanguage)) \(dailyGoal)  ·  \(localizedString("general.level", language: selectedLanguage)) \(dailyGoal)"
+        } else {
+            return "\(localizedString("general.level", language: selectedLanguage)) \(dailyGoal)  ·  \(dailyGoal) \(dailyGoal > 1 ? localizedString("general.deeds", language: selectedLanguage) : localizedString("general.deed", language: selectedLanguage)) \(localizedString("general.a_day", language: selectedLanguage))"
+        }
+    }
+
+    var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: selectedLanguage)
+        formatter.dateFormat = "EEEE, d MMMM"
+        return formatter.string(from: Date()).uppercased()
+    }
+
+    var greetingText: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let key: String
+        switch hour {
+        case 5..<12: key = "greeting.morning"
+        case 12..<16: key = "greeting.afternoon"
+        case 16..<21: key = "greeting.evening"
+        default: key = "greeting.night"
+        }
+        return localizedString(key, language: selectedLanguage)
     }
     
+    var dailyGoalMet: Bool {
+        viewModel.totalDeedsToday(logs: allLogs) >= dailyGoal
+    }
 
-    
     var body: some View {
         ZStack {
-            // Background
             Color(red: 0.12, green: 0.09, blue: 0.07)
                 .ignoresSafeArea()
-            
-    var levelText: String {
-                if selectedLanguage == "ar" {
-                    return "\(localizedString("general.a_day", language: selectedLanguage)) \(dailyGoal > 1 ? localizedString("general.deeds", language: selectedLanguage) : localizedString("general.deed", language: selectedLanguage)) \(dailyGoal)  ·  \(localizedString("general.level", language: selectedLanguage)) \(dailyGoal)"
-                } else {
-                    return "\(localizedString("general.level", language: selectedLanguage)) \(dailyGoal)  ·  \(dailyGoal) \(dailyGoal > 1 ? localizedString("general.deeds", language: selectedLanguage) : localizedString("general.deed", language: selectedLanguage)) \(localizedString("general.a_day", language: selectedLanguage))"
-                }
-            }
-            
-            var formattedDate: String {
-                let formatter = DateFormatter()
-                formatter.locale = Locale(identifier: selectedLanguage)
-                formatter.dateFormat = "EEEE, d MMMM"
-                return formatter.string(from: Date()).uppercased()
-            }
-          
-            
-                IslamicPattern()
-                    .ignoresSafeArea()
-            
-      
-            
+
+            IslamicPattern()
+                .ignoresSafeArea()
+
             // Top header
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
@@ -58,14 +67,29 @@ struct HomeView: View {
                             .font(.system(size: 28, weight: .light))
                             .italic()
                             .foregroundColor(.white.opacity(0.9))
-                            .environment(\.locale, Locale(identifier: selectedLanguage))
-                       
+
                         Text(levelText)
                             .font(.system(size: 12, weight: .light))
                             .foregroundColor(.white.opacity(0.4))
                     }
                     Spacer()
-
+                    Button {
+                        showLanguagePicker = true
+                    } label: {
+                        Text(AppLanguage(rawValue: selectedLanguage)?.displayName ?? "EN")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                            )
+                    }
+                    .sheet(isPresented: $showLanguagePicker) {
+                        LanguagePickerView()
+                            .presentationDetents([.fraction(0.4)])
+                    }
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 56)
@@ -73,14 +97,10 @@ struct HomeView: View {
             }
             .padding(.bottom, 100)
             .padding(.top, 20)
-            
 
-            
             // Orbs
             GeometryReader { geo in
-                
                 let baseSize = geo.size.width * 0.33
-
                 let orbLayout: [(worship: WorshipType, x: CGFloat, y: CGFloat, multiplier: CGFloat)] = [
                     (.quran,   0.50, 0.25, 0.75),
                     (.dhikr,   0.15, 0.30, 0.60),
@@ -93,14 +113,13 @@ struct HomeView: View {
                     (.fasting, 0.35, 0.77, 0.59),
                 ]
                 ForEach(orbLayout, id: \.worship) { item in
-                    let engine = viewModel.engine(for: item.worship)
-                    
                     OrbView(
                         worship: item.worship,
                         size: baseSize * item.multiplier,
-                        isLogged: engine.loggedToday,
+                        isLogged: viewModel.engine(for: item.worship, logs: allLogs, dailyGoal: dailyGoal).loggedToday,
                         isActive: item.worship.isActive,
-                        selectedLanguage: selectedLanguage
+                        selectedLanguage: selectedLanguage,
+                        logCount: viewModel.engine(for: item.worship, logs: allLogs, dailyGoal: dailyGoal).todayCount
                     ) {
                         viewModel.log(worshipType: item.worship, context: context)
                     }
@@ -108,53 +127,30 @@ struct HomeView: View {
                         x: geo.size.width * item.x,
                         y: geo.size.height * item.y
                     )
-                    .id("\(item.worship.rawValue)-\(viewModel.totalDeedsToday)")
+                    .id("\(item.worship.rawValue)-\(viewModel.totalDeedsToday(logs: allLogs))")
                 }
             }
-            
-            // Bottom counter
+
+            // Bottom progress bar
             VStack {
                 Spacer()
                 HabitProgressBar(
-                    progress: Double(viewModel.globalRhythm) / 70.0,
-                    deedsToday: viewModel.totalDeedsToday,
+                    progress: Double() / 70.0,
+                    deedsToday: viewModel.totalDeedsToday(logs: allLogs),
                     selectedLanguage: selectedLanguage,
-                    canUndo: viewModel.canUndo,
-                    onUndo: { viewModel.undoLastLog(context: context) }
+                    canUndo: viewModel.canUndo(logs: allLogs),
+                    onUndo: { viewModel.undoLastLog(logs: allLogs, context: context) }
                 )
                 .padding(.bottom, 100)
             }
         }
-        .onAppear {
-            viewModel.allLogs = allLogs
-        }
-        .onChange(of: allLogs) { _, new in
-            guard !viewModel.isResetting else {
-                viewModel.isResetting = false
-                return
-            }
-            viewModel.allLogs = new
-        }
-
-        .onChange(of: viewModel.isReadyForNextCommitment) { _, isReady in
+        .onChange(of: viewModel.isReadyForNextCommitment(logs: allLogs, dailyGoal: dailyGoal)) { _, isReady in
             if isReady && !hasSeenTierPopup {
                 hasSeenTierPopup = true
                 upgradeIconVisible = true
             }
         }
         .environment(\.layoutDirection, AppLanguage(rawValue: selectedLanguage)?.layoutDirection ?? .leftToRight)
-    }
-
-    var greetingText: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        let key: String
-        switch hour {
-        case 5..<12: key = "greeting.morning"
-        case 12..<16: key = "greeting.afternoon"
-        case 16..<21: key = "greeting.evening"
-        default: key = "greeting.night"
-        }
-        return localizedString(key, language: selectedLanguage)
     }
 }
 
@@ -165,6 +161,7 @@ struct OrbView: View {
     let isLogged: Bool
     let isActive: Bool
     let selectedLanguage: String
+    let logCount: Int
     let onTap: () -> Void
     
     @State private var isPulsing = false
@@ -233,7 +230,7 @@ struct OrbView: View {
             .scaleEffect(isPressed ? 1.05 : 1.0)
             // Count badge
             if isLogged {
-                Text("1")
+                Text("\(logCount)")
                     .font(.system(size: size * 0.13, weight: .medium))
                     .foregroundColor(.white.opacity(0.9))
                     .frame(width: size * 0.28, height: size * 0.28)

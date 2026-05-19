@@ -3,18 +3,17 @@ import SwiftData
 
 struct MainTabView: View {
     
-    @StateObject private var viewModel = HomeViewModel()
     @State private var selectedTab: Tab = .home
     
     var body: some View {
         ZStack(alignment: .bottom) {
             switch selectedTab {
             case .home:
-                HomeView(viewModel: viewModel)
+                HomeView()
             case .calendar:
                 CalendarView()
             case .settings:
-                SettingsView(viewModel: viewModel)
+                SettingsView()
             }
             
             HStack(spacing: 0) {
@@ -57,7 +56,7 @@ struct TabBarButton: View {
         Button {
             selectedTab = tab
         } label: {
-            Image(systemName: isSelected ? "\(icon)" : icon)
+            Image(systemName: icon)
                 .font(.system(size: 18))
                 .foregroundColor(isSelected ?
                     Color(red: 0.85, green: 0.72, blue: 0.52) :

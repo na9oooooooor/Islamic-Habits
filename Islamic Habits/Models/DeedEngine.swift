@@ -3,6 +3,7 @@ import Foundation
 struct DeedEngine {
     let logs: [DeedLog]
     let worshipType: WorshipType
+    let dailyGoal: Int
     
     // MARK: - Today
     var loggedToday: Bool {
@@ -12,24 +13,38 @@ struct DeedEngine {
     }
     
     var todayCount: Int {
-        let startOfDay = Calendar.current.startOfDay(for: Date())
-        return logs.filter { $0.loggedAt >= startOfDay }.count
+        logs.filter { $0.loggedAt >= startOfIslamicDay && $0.loggedAt < startOfIslamicTomorrow }.count
     }
     
     // MARK: - Rhythm
     var rhythmLast66Days: Int {
-            let calendar = Calendar.current
-            let today = calendar.startOfDay(for: Date())
-            let sixtySixDaysAgo = calendar.date(byAdding: .day, value: -66, to: today)!
-            
-            let recentLogs = logs.filter { $0.loggedAt >= sixtySixDaysAgo && $0.loggedAt < today }
-            
-            let activeDays = Set(recentLogs.map { calendar.startOfDay(for: $0.loggedAt) })
-            
-            return Int(round(Double(activeDays.count) / 66.0 * 100))
+        let calendar = Calendar.current
+        let today = startOfIslamicDay
+        let sixtySixDaysAgo = calendar.date(byAdding: .day, value: -66, to: today)!
+        
+        let recentLogs = logs.filter { $0.loggedAt >= sixtySixDaysAgo && $0.loggedAt < today }
+        
+        // Group by day
+        let grouped = Dictionary(grouping: recentLogs) { log in
+            islamicStartOfDay(for: log.loggedAt)
         }
+        
+        // Count days where logs >= dailyGoal
+        let activeDays = grouped.filter { $0.value.count >= dailyGoal }.count
+        
+        return Int(round(Double(activeDays) / 66.0 * 100))
+    }
     
     var readyForNextCommitment: Bool {
         rhythmLast66Days >= 70
+    }
+    
+    
+    
+    
+    func totalDeedsToday(logs: [DeedLog]) -> Int {
+        return logs.filter {
+            $0.loggedAt >= startOfIslamicDay && $0.loggedAt < startOfIslamicTomorrow
+        }.count
     }
 }
