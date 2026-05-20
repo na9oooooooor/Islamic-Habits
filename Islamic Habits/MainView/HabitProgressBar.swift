@@ -26,23 +26,27 @@ struct HabitProgressBar: View {
     
     var body: some View {
         VStack(spacing: 10) {
-            ZStack {
+            HStack {
+                Text("\(Int(cappedProgress * 100))%")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.7))
+                
+                Spacer()
+                
                 Text(message)
                     .font(.system(size: 11, weight: .light))
                     .tracking(1.5)
                     .foregroundColor(.white.opacity(0.4))
-                    .frame(maxWidth: .infinity, alignment: .center)
+                
+                Spacer()
                 
                 if canUndo {
-                    HStack {
-                        Spacer()
-                        Button {
-                            onUndo()
-                        } label: {
-                            Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white.opacity(0.4))
-                        }
+                    Button {
+                        onUndo()
+                    } label: {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.4))
                     }
                 }
             }

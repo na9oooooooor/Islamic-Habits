@@ -18,7 +18,7 @@ struct SettingsView: View {
             
             VStack(alignment: .leading, spacing: 32) {
                 
-                Text("Settings")
+                Text(localizedString("Settings", language: selectedLanguage))
                     .font(.system(size: 28, weight: .light))
                     .italic()
                     .foregroundColor(.white.opacity(0.9))
@@ -29,7 +29,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("LANGUAGE")
                         .font(.system(size: 10, weight: .medium))
-                        .tracking(2)
+                        .tracking(selectedLanguage == "ar" ? 0 : 2)
                         .foregroundColor(.white.opacity(0.3))
                         .padding(.horizontal, 24)
                     
@@ -37,7 +37,7 @@ struct SettingsView: View {
                         showLanguagePicker = true
                     } label: {
                         HStack {
-                            Text("App Language")
+                            Text(localizedString("App Language", language: selectedLanguage))
                                 .font(.system(size: 15, weight: .light))
                                 .foregroundColor(.white.opacity(0.8))
                             Spacer()
@@ -57,13 +57,13 @@ struct SettingsView: View {
                 
                 // Data
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("DATA")
+                    Text(localizedString("DATA", language: selectedLanguage))
                         .font(.system(size: 10, weight: .medium))
-                        .tracking(2)
+                        .tracking(selectedLanguage == "ar" ? 0 : 2)
                         .foregroundColor(.white.opacity(0.3))
                         .padding(.horizontal, 24)
                     
-                    Button("Erase all data") {
+                    Button(localizedString("Erase all data", language: selectedLanguage)) {
                         resetDataIsOn = true
                     }
                     .font(.system(size: 15, weight: .light))
@@ -72,7 +72,7 @@ struct SettingsView: View {
                     .padding(.vertical, 14)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.white.opacity(0.05))
-                    .alert("Reset All Data", isPresented: $resetDataIsOn) {
+                    .alert(localizedString("Reset All Data", language: selectedLanguage), isPresented: $resetDataIsOn) {
                         Button(role: .destructive) {
                             do {
                                 try modelContext.delete(model: DeedLog.self)
@@ -84,24 +84,24 @@ struct SettingsView: View {
                                 print("Failed to erase data: \(error)")
                             }
                         } label: {
-                            Text("Delete")
+                            Text(localizedString("Delete", language: selectedLanguage))
                         }
-                        Button("Cancel", role: .cancel) {}
+                        Button(localizedString("Cancel", language: selectedLanguage), role: .cancel) {}
                     } message: {
-                        Text("This will erase all data stored on this device. Are you sure?")
+                        Text(localizedString("This will erase all data stored on this device. Are you sure?", language: selectedLanguage))
                     }
                 }
                 
                 // About
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("ABOUT")
+                    Text(localizedString("ABOUT", language: selectedLanguage))
                         .font(.system(size: 10, weight: .medium))
-                        .tracking(2)
+                        .tracking(selectedLanguage == "ar" ? 0 : 2)
                         .foregroundColor(.white.opacity(0.3))
                         .padding(.horizontal, 24)
                     
                     HStack {
-                        Text("Version")
+                        Text(localizedString("Version", language: selectedLanguage))
                             .font(.system(size: 15, weight: .light))
                             .foregroundColor(.white.opacity(0.8))
                         Spacer()

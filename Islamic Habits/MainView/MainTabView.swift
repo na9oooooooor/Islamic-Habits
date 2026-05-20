@@ -4,22 +4,37 @@ import SwiftData
 struct MainTabView: View {
     
     @State private var selectedTab: Tab = .home
+    @State private var previousTab: Tab = .home
+    
+    let tabOrder: [Tab] = [.home, .calendar, .settings]
+    
+    func tabEdge(for tab: Tab) -> Edge {
+        let current = tabOrder.firstIndex(of: tab) ?? 0
+        let previous = tabOrder.firstIndex(of: previousTab) ?? 0
+        return current > previous ? .trailing : .leading
+    }
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            switch selectedTab {
-            case .home:
-                HomeView()
-            case .calendar:
-                CalendarView()
-            case .settings:
-                SettingsView()
+            ZStack {
+                switch selectedTab {
+                case .home:
+                    HomeView()
+                        .transition(.move(edge: tabEdge(for: .home)))
+                case .calendar:
+                    CalendarView()
+                        .transition(.move(edge: tabEdge(for: .calendar)))
+                case .settings:
+                    SettingsView()
+                        .transition(.move(edge: tabEdge(for: .settings)))
+                }
             }
+            .animation(.easeInOut(duration: 0.3), value: selectedTab)
             
             HStack(spacing: 0) {
-                TabBarButton(icon: "house.fill", tab: .home, selectedTab: $selectedTab)
-                TabBarButton(icon: "calendar", tab: .calendar, selectedTab: $selectedTab)
-                TabBarButton(icon: "gearshape.fill", tab: .settings, selectedTab: $selectedTab)
+                TabBarButton(icon: "house.fill", tab: .home, selectedTab: $selectedTab, previousTab: $previousTab)
+                TabBarButton(icon: "calendar", tab: .calendar, selectedTab: $selectedTab, previousTab: $previousTab)
+                TabBarButton(icon: "gearshape.fill", tab: .settings, selectedTab: $selectedTab, previousTab: $previousTab)
             }
             .padding(.horizontal, 40)
             .padding(.vertical, 12)
@@ -37,7 +52,7 @@ struct MainTabView: View {
     }
 }
 
-enum Tab {
+enum Tab: CaseIterable {
     case home
     case calendar
     case settings
@@ -47,6 +62,7 @@ struct TabBarButton: View {
     let icon: String
     let tab: Tab
     @Binding var selectedTab: Tab
+    @Binding var previousTab: Tab
     
     var isSelected: Bool {
         selectedTab == tab
@@ -54,6 +70,7 @@ struct TabBarButton: View {
     
     var body: some View {
         Button {
+            previousTab = selectedTab
             selectedTab = tab
         } label: {
             Image(systemName: icon)

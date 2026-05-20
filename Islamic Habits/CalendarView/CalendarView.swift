@@ -1,6 +1,9 @@
 import SwiftUI
 import SwiftData
 
+import SwiftUI
+import SwiftData
+
 struct CalendarView: View {
     
     @Query(sort: \DeedLog.loggedAt, order: .reverse) private var allLogs: [DeedLog]
@@ -28,19 +31,27 @@ struct CalendarView: View {
                 ScrollView {
                     VStack(spacing: 0) {
                         
+                 
                         CalendarGrid(
                             month: displayedMonth,
                             loggedDays: Set(groupedLogs.keys),
                             selectedLanguage: selectedLanguage,
                             islamicToday: startOfIslamicDay,
+                            onPreviousMonth: {
+                                displayedMonth = Calendar.current.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
+                            },
+                            onNextMonth: {
+                                displayedMonth = Calendar.current.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+                            },
                             selectedDay: $selectedDay
                         )
-                        .padding(.top, 60)
-                        .padding(.bottom, 24)
+                        .padding(.top, 70)
+                            .padding(.bottom, 24)
                         
                         Divider()
                             .background(Color.white.opacity(0.08))
                             .padding(.horizontal, 24)
+                        
                         HStack {
                             Spacer()
                             Button {
@@ -58,6 +69,7 @@ struct CalendarView: View {
                             .padding(.horizontal, 24)
                             .padding(.top, 16)
                         }
+                        
                         if allLogs.isEmpty {
                             VStack(spacing: 12) {
                                 Text(localizedString("general.nologgs", language: selectedLanguage))
@@ -89,8 +101,9 @@ struct CalendarView: View {
                 }
                 .onChange(of: selectedDay) { _, newDay in
                     guard let day = newDay else { return }
+                    let islamicDay = islamicStartOfDay(for: day.date)
                     withAnimation {
-                        proxy.scrollTo(day.date, anchor: .top)
+                        proxy.scrollTo(islamicDay, anchor: .top)
                     }
                 }
                 .sheet(isPresented: $addLogDay) {
@@ -99,7 +112,6 @@ struct CalendarView: View {
                 }
             }
         }
-        
     }
 }
 
@@ -113,6 +125,8 @@ struct CalendarGrid: View {
     let loggedDays: Set<Date>
     let selectedLanguage: String
     let islamicToday: Date
+    let onPreviousMonth: () -> Void
+    let onNextMonth: () -> Void
     @Binding var selectedDay: IdentifiableDate?
     @State private var showAddPastLog = false
 
@@ -135,6 +149,10 @@ struct CalendarGrid: View {
         return days
     }
     
+    var isCurrentMonth: Bool {
+        Calendar.current.isDate(month, equalTo: Date(), toGranularity: .month)
+    }
+    
     var monthTitle: String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: selectedLanguage)
@@ -142,14 +160,39 @@ struct CalendarGrid: View {
         return formatter.string(from: month)
     }
     
-    var body: some View {
+
         
-        VStack(spacing: 16) {
-            Spacer()
-            Text(monthTitle)
-                .font(.system(size: 16, weight: .light))
-                .foregroundColor(.white.opacity(0.7))
-                .frame(maxWidth: .infinity, alignment: .center)
+        var body: some View {
+            VStack(spacing: 16) {
+                
+                HStack {
+                    Button {
+                        onPreviousMonth()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14))
+                            .foregroundColor(.white.opacity(0.4))
+                    }
+                    
+                    Spacer()
+                    
+                    Text(monthTitle)
+                        .font(.system(size: 16, weight: .light))
+                        .foregroundColor(.white.opacity(0.7))
+                    
+                    Spacer()
+                    
+                    Button {
+                        onNextMonth()
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14))
+                            .foregroundColor(isCurrentMonth ? .white.opacity(0.15) : .white.opacity(0.4))
+                    }
+                    .disabled(isCurrentMonth)
+                }
+                .padding(.horizontal, 24)
+                
             Spacer()
             LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(weekdaySymbols, id: \.self) { symbol in
@@ -161,7 +204,6 @@ struct CalendarGrid: View {
                 
                 ForEach(Array(daysInMonth.enumerated()), id: \.offset) { _, date in
                     if let date = date {
-                        
                         let startOfDate = islamicStartOfDay(for: date)
                         let hasLog = loggedDays.contains(startOfDate)
                         let isSelected = selectedDay?.date == startOfDate
@@ -169,8 +211,15 @@ struct CalendarGrid: View {
                         
                         Button {
                             selectedDay = IdentifiableDate(date: date)
-                        }label: {
+                        } label: {
                             ZStack {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.white.opacity(0.02))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .stroke(Color.white.opacity(0.05), lineWidth: 0.5)
+                                    )
+                                
                                 Circle()
                                     .fill(isSelected ?
                                         Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.3) :
@@ -194,12 +243,19 @@ struct CalendarGrid: View {
                                 }
                             }
                             .frame(maxWidth: .infinity)
+                            .frame(height: 44)
                         }
                         .disabled(islamicStartOfDay(for: date) > startOfIslamicDay)
-
+                        
                     } else {
-                        Color.clear
-                            .frame(height: 36)
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.white.opacity(0.02))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(Color.white.opacity(0.05), lineWidth: 0.5)
+                            )
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
                     }
                 }
             }

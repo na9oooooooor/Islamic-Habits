@@ -5,7 +5,7 @@ struct IslamicPattern: View {
         GeometryReader { geo in
             Canvas { context, size in
                 let color = GraphicsContext.Shading.color(
-                    Color.white.opacity(0.04)
+                    Color.white.opacity(0.06)
                 )
                 let spacing: CGFloat = 60
                 let cols = Int(size.width / spacing) + 2

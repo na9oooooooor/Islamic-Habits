@@ -25,12 +25,6 @@ enum WorshipType: String, CaseIterable {
         }
     }
     
-    var isActive: Bool {
-        switch self {
-        case .quran, .sunnah: return true
-        default: return false
-        }
-    }
     
     var nameKey: String { rawValue }
     
@@ -59,6 +53,20 @@ enum WorshipType: String, CaseIterable {
         case .masjid: return "masjid"
         case .hadith: return "hadith"
         case .fasting: return "fasting"
+        }
+    }
+    
+    var systemIcon: String {
+        switch self {
+        case .quran: return "book"
+        case .dhikr: return "circle.grid.3x3"
+        case .sunnah: return "moon.stars"
+        case .duaa: return "hands.sparkles"
+        case .sadaqah: return "heart"
+        case .qiyam: return "moon"
+        case .masjid: return "house.lodge"
+        case .hadith: return "text.book.closed"
+        case .fasting: return "sun.and.horizon"
         }
     }
 }

@@ -12,6 +12,7 @@ struct HomeView: View {
     @AppStorage("hasSeenTierPopup") var hasSeenTierPopup: Bool = false
     @AppStorage("upgradeIconVisible") var upgradeIconVisible: Bool = false
     @State private var showLanguagePicker = false
+    @State private var showUpgradePopup: Bool = false
 
 
     var levelText: String {
@@ -44,6 +45,14 @@ struct HomeView: View {
     var dailyGoalMet: Bool {
         viewModel.totalDeedsToday(logs: allLogs) >= dailyGoal
     }
+    
+    var hijriDate: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: selectedLanguage)
+        formatter.calendar = Calendar(identifier: .islamicUmmAlQura)
+        formatter.dateFormat = "d MMMM yyyy"
+        return formatter.string(from: Date()).uppercased()
+    }
 
     var body: some View {
         ZStack {
@@ -57,6 +66,11 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
+                        Text(hijriDate)
+                            .font(.system(size: 11, weight: .medium))
+                            .tracking(selectedLanguage == "ar" ? 0 : 2)
+                            .foregroundColor(.white.opacity(0.3))
+
                         Text(formattedDate)
                             .font(.system(size: 11, weight: .medium))
                             .tracking(selectedLanguage == "ar" ? 0 : 2)
@@ -69,26 +83,29 @@ struct HomeView: View {
                             .foregroundColor(.white.opacity(0.9))
 
                         Text(levelText)
-                            .font(.system(size: 12, weight: .light))
-                            .foregroundColor(.white.opacity(0.4))
-                    }
-                    Spacer()
-                    Button {
-                        showLanguagePicker = true
-                    } label: {
-                        Text(AppLanguage(rawValue: selectedLanguage)?.displayName ?? "EN")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.7))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .overlay(
-                                Capsule()
-                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.9))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.12))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.3), lineWidth: 0.5)
+                                    )
                             )
                     }
-                    .sheet(isPresented: $showLanguagePicker) {
-                        LanguagePickerView()
-                            .presentationDetents([.fraction(0.4)])
+                    Spacer()
+                    if upgradeIconVisible {
+                        Button {
+                            showUpgradePopup = true
+                        } label: {
+                            Image(systemName: "arrow.up.circle")
+                                .font(.system(size: 18))
+                                .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.8))
+                                .padding(.trailing, 8)
+                        }
                     }
                 }
                 .padding(.horizontal, 24)
@@ -108,18 +125,19 @@ struct HomeView: View {
                     (.duaa,    0.35, 0.44, 0.70),
                     (.sadaqah, 0.72, 0.49, 0.66),
                     (.qiyam,   0.20, 0.59, 0.57),
-                    (.masjid,  0.58, 0.65, 0.74),
+                    (.masjid,  0.56, 0.64, 0.74),
                     (.hadith,  0.88, 0.67, 0.53),
                     (.fasting, 0.35, 0.77, 0.59),
                 ]
                 ForEach(orbLayout, id: \.worship) { item in
+                    let engine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
+                    
                     OrbView(
                         worship: item.worship,
                         size: baseSize * item.multiplier,
-                        isLogged: viewModel.engine(for: item.worship, logs: allLogs, dailyGoal: dailyGoal).loggedToday,
-                        isActive: item.worship.isActive,
+                        isLogged: engine.loggedTodayByWorship[item.worship.rawValue] ?? false,
                         selectedLanguage: selectedLanguage,
-                        logCount: viewModel.engine(for: item.worship, logs: allLogs, dailyGoal: dailyGoal).todayCount
+                        logCount: engine.todayCountByWorship[item.worship.rawValue] ?? 0
                     ) {
                         viewModel.log(worshipType: item.worship, context: context)
                     }
@@ -127,7 +145,9 @@ struct HomeView: View {
                         x: geo.size.width * item.x,
                         y: geo.size.height * item.y
                     )
-                    .id("\(item.worship.rawValue)-\(viewModel.totalDeedsToday(logs: allLogs))")
+                    
+         
+                    
                 }
             }
 
@@ -135,7 +155,7 @@ struct HomeView: View {
             VStack {
                 Spacer()
                 HabitProgressBar(
-                    progress: Double() / 70.0,
+                    progress: Double(viewModel.globalRhythm(logs: allLogs, dailyGoal: dailyGoal)) / 70.0,
                     deedsToday: viewModel.totalDeedsToday(logs: allLogs),
                     selectedLanguage: selectedLanguage,
                     canUndo: viewModel.canUndo(logs: allLogs),
@@ -144,10 +164,15 @@ struct HomeView: View {
                 .padding(.bottom, 100)
             }
         }
+        .sheet(isPresented: $showUpgradePopup) {
+            CommitmentUpgradeView()
+                .presentationDetents([.fraction(0.75)])
+        }
         .onChange(of: viewModel.isReadyForNextCommitment(logs: allLogs, dailyGoal: dailyGoal)) { _, isReady in
             if isReady && !hasSeenTierPopup {
                 hasSeenTierPopup = true
                 upgradeIconVisible = true
+                showUpgradePopup = true
             }
         }
         .environment(\.layoutDirection, AppLanguage(rawValue: selectedLanguage)?.layoutDirection ?? .leftToRight)
@@ -159,24 +184,33 @@ struct OrbView: View {
     let worship: WorshipType
     let size: CGFloat
     let isLogged: Bool
-    let isActive: Bool
     let selectedLanguage: String
     let logCount: Int
     let onTap: () -> Void
     
     @State private var isPulsing = false
     @State private var isPressed = false
-    
+    @State private var showRipple = false
+
     var body: some View {
         ZStack {
+            if showRipple {
+                Circle()
+                    .stroke(
+                        Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.6),
+                        lineWidth: 1.5
+                    )
+                    .frame(width: size, height: size)
+                    .scaleEffect(showRipple ? 1.8 : 1.0)
+                    .opacity(showRipple ? 0 : 0.6)
+                    .animation(.easeOut(duration: 0.6), value: showRipple)
+            }
             // Outer glow
             Circle()
                 .fill(
                     RadialGradient(
                         colors: [
-                            Color(red: 0.85, green: 0.72, blue: 0.52).opacity(
-                                isLogged ? 0.35 : (isActive ? 0.28 : 0.08)
-                            ),
+                            Color(red: 0.85, green: 0.72, blue: 0.52).opacity(isLogged ? 0.35 : 0.28),
                             Color.clear
                         ],
                         center: .center,
@@ -216,17 +250,25 @@ struct OrbView: View {
                     )
                 )
                 .frame(width: size, height: size)
-                .opacity(isLogged ? 0.45 : (isActive ? 1.0 : 0.5))
+                .opacity(isLogged ? 0.45 : 1.0)
                 .scaleEffect(isPressed ? 1.08 : 1.0)
             
             // Text
             VStack(spacing: 2) {
-                Text(LocalizedStringKey(worship.nameKey))
-                    .environment(\.locale, Locale(identifier: selectedLanguage))
-                    .font(.system(size: size * 0.18))
+                Image(systemName: worship.systemIcon)
+                    .font(.system(size: size * 0.14, weight: .light))
+                    .foregroundColor(.white.opacity(0.7))
+                Text(worship.arabicName)
+                    .font(.system(size: size * 0.18, weight: .regular))
                     .foregroundColor(.white.opacity(0.95))
-                
-            }
+                if selectedLanguage != "ar" {
+                    
+                    Text(LocalizedStringKey(worship.nameKey))
+                        .font(.system(size: size * 0.16, weight: .light))
+                        .italic()
+                        .foregroundColor(.white.opacity(0.6))
+                        .environment(\.locale, Locale(identifier: selectedLanguage))
+                }}
             .scaleEffect(isPressed ? 1.05 : 1.0)
             // Count badge
             if isLogged {
@@ -236,12 +278,11 @@ struct OrbView: View {
                     .frame(width: size * 0.28, height: size * 0.28)
                     .background(Color.black.opacity(0.4))
                     .clipShape(Circle())
-                    .offset(x: size * 0.32, y: -(size * 0.32))
+                    .offset(x: size * 0.38, y: -(size * 0.42))
                     .transition(.scale.combined(with: .opacity))
             }
         }
         .onTapGesture {
-            guard isActive else { return }
             withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
                 isPressed = true
             }
@@ -250,6 +291,14 @@ struct OrbView: View {
                     isPressed = false
                 }
             }
+            showRipple = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                showRipple = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    showRipple = false
+                }
+            }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             onTap()
         }
     }

@@ -21,12 +21,19 @@ struct AddPastLogView: View {
             Color(red: 0.12, green: 0.09, blue: 0.07)
                 .ignoresSafeArea()
             
-            VStack(spacing: 24) {
-                Text("Add a past deed")
-                    .font(.system(size: 24, weight: .light))
+            IslamicPattern()
+                .ignoresSafeArea()
+                .opacity(0.3)
+            
+            VStack(spacing: 0) {
+                
+                // Header
+                Text(localizedString("Add a past deed", language: selectedLanguage))
+                    .font(.system(size: 22, weight: .light))
                     .italic()
                     .foregroundColor(.white.opacity(0.9))
-                    .padding(.top, 40)
+                    .padding(.top, 32)
+                    .padding(.bottom, 24)
                 
                 // Date picker
                 DatePicker(
@@ -35,57 +42,70 @@ struct AddPastLogView: View {
                     in: ...Calendar.current.date(byAdding: .day, value: -1, to: Date())!,
                     displayedComponents: .date
                 )
-                .datePickerStyle(.graphical)
+                .datePickerStyle(.compact)
                 .tint(Color(red: 0.85, green: 0.72, blue: 0.52))
                 .colorScheme(.dark)
                 .environment(\.locale, Locale(identifier: selectedLanguage))
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
+                
+                Divider()
+                    .background(Color.white.opacity(0.08))
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16)
                 
                 // Worship picker
-                VStack(spacing: 8) {
-                    ForEach(WorshipType.allCases.filter { $0.isActive }, id: \.self) { worship in
-                        Button {
-                            selectedWorship = worship
-                        } label: {
-                            HStack {
-                                Text(worship.arabicName)
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.white.opacity(0.9))
-                                
-                                Spacer()
-                                
-                                Text(localizedString(worship.nameKey, language: selectedLanguage))
-                                    .font(.system(size: 13, weight: .light))
-                                    .foregroundColor(.white.opacity(0.5))
-                                
-                                if selectedWorship == worship {
-                                    Circle()
-                                        .fill(Color(red: 0.85, green: 0.72, blue: 0.52))
-                                        .frame(width: 8, height: 8)
+                ScrollView {
+                    VStack(spacing: 8) {
+                        ForEach(WorshipType.allCases, id: \.self) { worship in
+                            Button {
+                                selectedWorship = worship
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: worship.systemIcon)
+                                        .font(.system(size: 16, weight: .light))
+                                        .foregroundColor(.white.opacity(0.6))
+                                        .frame(width: 24)
+                                    
+                                    Text(worship.arabicName)
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.white.opacity(0.9))
+                                    
+                                    Spacer()
+                                    
+                                    Text(localizedString(worship.nameKey, language: selectedLanguage))
+                                        .font(.system(size: 13, weight: .light))
+                                        .foregroundColor(.white.opacity(0.4))
+                                    
+                                    if selectedWorship == worship {
+                                        Circle()
+                                            .fill(Color(red: 0.85, green: 0.72, blue: 0.52))
+                                            .frame(width: 8, height: 8)
+                                    }
                                 }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                .background(
+                                    selectedWorship == worship ?
+                                    Color.white.opacity(0.08) :
+                                    Color.white.opacity(0.03)
+                                )
+                                .cornerRadius(10)
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(
-                                selectedWorship == worship ?
-                                Color.white.opacity(0.08) :
-                                Color.white.opacity(0.03)
-                            )
-                            .cornerRadius(12)
+                            .padding(.horizontal, 24)
                         }
-                        .padding(.horizontal, 24)
                     }
+                    .padding(.bottom, 16)
                 }
                 
-                Spacer()
-                
+                // Log button
                 Button {
                     let newLog = DeedLog(worshipType: selectedWorship, loggedAt: logDate)
                     modelContext.insert(newLog)
                     try? modelContext.save()
                     dismiss()
                 } label: {
-                    Text("Log deed")
+                    Text(localizedString("Log deed", language: selectedLanguage))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(Color(red: 0.12, green: 0.09, blue: 0.07))
                         .frame(maxWidth: .infinity)

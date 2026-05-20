@@ -3,6 +3,9 @@ import SwiftData
 
 @main
 struct Islamic_HabitsApp: App {
+    
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
+    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             DeedLog.self,
@@ -18,9 +21,11 @@ struct Islamic_HabitsApp: App {
 
     var body: some Scene {
         WindowGroup {
-            MainTabView()
-                .onAppear {
-                }
+            if hasCompletedOnboarding {
+                MainTabView()
+            } else {
+                OnboardingView()
+            }
         }
         .modelContainer(sharedModelContainer)
     }
