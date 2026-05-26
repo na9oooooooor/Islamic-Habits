@@ -1,6 +1,8 @@
 
 import SwiftUI
 import SwiftData
+import StoreKit
+
 
 struct HomeView: View {
     
@@ -13,6 +15,7 @@ struct HomeView: View {
     @AppStorage("upgradeIconVisible") var upgradeIconVisible: Bool = false
     @State private var showLanguagePicker = false
     @State private var showUpgradePopup: Bool = false
+    @Environment(\.requestReview) var requestReview
 
 
     var levelText: String {
@@ -128,6 +131,7 @@ struct HomeView: View {
                     (.masjid,  0.56, 0.64, 0.74),
                     (.hadith,  0.88, 0.67, 0.53),
                     (.fasting, 0.35, 0.77, 0.59),
+                    (.other,   0.50, 0.85, 0.68)
                 ]
                 ForEach(orbLayout, id: \.worship) { item in
                     let engine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
@@ -155,7 +159,7 @@ struct HomeView: View {
             VStack {
                 Spacer()
                 HabitProgressBar(
-                    progress: Double(viewModel.globalRhythm(logs: allLogs, dailyGoal: dailyGoal)) / 70.0,
+                    progress: Double(viewModel.globalRhythm(logs: allLogs, dailyGoal: dailyGoal))/100,
                     deedsToday: viewModel.totalDeedsToday(logs: allLogs),
                     selectedLanguage: selectedLanguage,
                     canUndo: viewModel.canUndo(logs: allLogs),
@@ -163,6 +167,13 @@ struct HomeView: View {
                 )
                 .padding(.bottom, 100)
             }
+        }
+        .onAppear {
+               let has3Logs = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal).has3Logs
+               
+               if has3Logs && AppReviewManager.shouldRequestReview() {
+                   requestReview()
+               }
         }
         .sheet(isPresented: $showUpgradePopup) {
             CommitmentUpgradeView()
@@ -174,6 +185,7 @@ struct HomeView: View {
                 upgradeIconVisible = true
                 showUpgradePopup = true
             }
+            print(viewModel.globalRhythm(logs: allLogs, dailyGoal: dailyGoal))
         }
         .environment(\.layoutDirection, AppLanguage(rawValue: selectedLanguage)?.layoutDirection ?? .leftToRight)
     }
@@ -304,11 +316,3 @@ struct OrbView: View {
     }
 }
 
-//#Preview {
-//    let container = try! ModelContainer(
-//        for: DeedLog.self,
-//        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-//    )
-//    return HomeView()
-//        .modelContainer(container)
-//}

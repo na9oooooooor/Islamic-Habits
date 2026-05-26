@@ -27,15 +27,26 @@ struct DeedEngine {
     
     // MARK: - Rhythm
     var rhythmLast66Days: Int {
-        let sixtySixDaysAgo = Calendar.current.date(byAdding: .day, value: -66, to: startOfIslamicDay)!
-        let recentLogs = logs.filter { $0.loggedAt >= sixtySixDaysAgo && $0.loggedAt < startOfIslamicDay }
+        let sixtySixDaysAgo = Calendar.current.date(byAdding: .day, value: -66, to: startOfIslamicTomorrow)!
+        let recentLogs = logs.filter { $0.loggedAt >= sixtySixDaysAgo && $0.loggedAt <= startOfIslamicTomorrow }
         let grouped = Dictionary(grouping: recentLogs) { islamicStartOfDay(for: $0.loggedAt) }
         let activeDays = grouped.filter { $0.value.count >= dailyGoal }.count
-        return Int(round(Double(activeDays) / 66.0 * 100))
+        let habitEstablishedAt = 66 * 0.8
+        return Int(round((Double(activeDays) / habitEstablishedAt) * 100))
     }
     
     // MARK: - Commitment
     var readyForNextCommitment: Bool {
         rhythmLast66Days >= 70
+    }
+    
+    var has3Logs: Bool {
+    
+        let recentLogs = logs.filter { $0.loggedAt <= startOfIslamicTomorrow }
+        let grouped = Dictionary(grouping: recentLogs) { islamicStartOfDay(for: $0.loggedAt) }
+        let activeDays = grouped.filter { $0.value.count >= dailyGoal }.count
+         if activeDays >= 3 {
+            return true
+         } else {return false}
     }
 }

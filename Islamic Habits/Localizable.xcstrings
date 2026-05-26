@@ -1159,19 +1159,19 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "سنّة"
+            "value" : "صلاة سنّة"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sunnah"
+            "value" : "Sunnah Prayer"
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ซุนนะฮ์"
+            "value" : "ละหมาดซุนนะฮ์"
           }
         }
       }

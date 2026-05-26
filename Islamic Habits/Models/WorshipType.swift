@@ -10,6 +10,7 @@ enum WorshipType: String, CaseIterable {
     case masjid = "worship.masjid"
     case hadith = "worship.hadith"
     case fasting = "worship.fasting"
+    case other = "worship.other"
     
     var cadence: String {
         switch self {
@@ -22,6 +23,7 @@ enum WorshipType: String, CaseIterable {
         case .masjid: return "weekly"
         case .hadith: return "daily"
         case .fasting: return "monthly"
+        case .other: return "daily"
         }
     }
     
@@ -32,29 +34,17 @@ enum WorshipType: String, CaseIterable {
         switch self {
         case .quran: return "قرآن"
         case .dhikr: return "ذكر"
-        case .sunnah: return "سنّة"
+        case .sunnah: return "صلاة سنّة"
         case .duaa: return "دعاء"
         case .sadaqah: return "صدقة"
         case .qiyam: return "قيام"
         case .masjid: return "مسجد"
         case .hadith: return "حديث"
         case .fasting: return "صيام"
+        case .other: return "اخرى"
         }
     }
     
-    var transliteration: String {
-        switch self {
-        case .quran: return "qur'an"
-        case .dhikr: return "dhikr"
-        case .sunnah: return "sunnah"
-        case .duaa: return "du'a'"
-        case .sadaqah: return "sadaqah"
-        case .qiyam: return "qiyam"
-        case .masjid: return "masjid"
-        case .hadith: return "hadith"
-        case .fasting: return "fasting"
-        }
-    }
     
     var systemIcon: String {
         switch self {
@@ -67,6 +57,7 @@ enum WorshipType: String, CaseIterable {
         case .masjid: return "house.lodge"
         case .hadith: return "text.book.closed"
         case .fasting: return "sun.and.horizon"
+        case .other: return "gift"
         }
     }
 }

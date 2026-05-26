@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D9B883" stop-opacity="1"></stop>
+      <stop offset="1" stop-color="#D9B883" stop-opacity="0.78"></stop>
+    </linearGradient>
+    <radialGradient id="archGlow" cx="0.5" cy="0.5" r="0.55">
+      <stop offset="0" stop-color="#D9B883" stop-opacity="0.35"></stop>
+      <stop offset="1" stop-color="#D9B883" stop-opacity="0"></stop>
+    </radialGradient>
+    <radialGradient id="vign" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"></stop>
+      <stop offset="1" stop-color="#000" stop-opacity="0.55"></stop>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="#1F1712"></rect>
+  <circle cx="512" cy="480" r="340" fill="url(#archGlow)" opacity="0.55"></circle>
+  <path d="M 406.03 644.11&#xA;  L 406.03 358.38&#xA;  C 406.03 272.66, 484.53 258.34, 512.00 226.00&#xA;  C 540.17 253.60, 629.11 254.43, 629.11 349.16&#xA;  L 629.11 664.94 Z" fill="none" stroke="#D9B883" stroke-width="3" stroke-linejoin="round" opacity="0.4"></path>
+  <path d="M 406.03 649.82&#xA;  L 406.03 364.09&#xA;  C 406.03 278.37, 484.53 264.27, 512.00 232.00&#xA;  C 540.17 259.67, 629.11 260.75, 629.11 355.48&#xA;  L 629.11 671.25 Z" fill="url(#goldGrad)"></path>
+  <path d="M 429.85 623.21&#xA;  L 429.85 382.43&#xA;  C 429.85 295.75, 479.11 294.27, 500.93 272.86" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.22"></path>
+  <ellipse cx="512" cy="668" rx="140" ry="6" fill="#000" opacity="0.5"></ellipse>
+  <rect width="1024" height="1024" fill="url(#vign)"></rect>
+</svg>

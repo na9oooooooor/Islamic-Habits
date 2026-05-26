@@ -87,3 +87,7 @@ struct CommitmentUpgradeView: View {
         }
     }
 }
+#Preview {
+    CommitmentUpgradeView()
+}
+
