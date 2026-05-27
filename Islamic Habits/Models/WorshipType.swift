@@ -10,7 +10,12 @@ enum WorshipType: String, CaseIterable {
     case masjid = "worship.masjid"
     case hadith = "worship.hadith"
     case fasting = "worship.fasting"
-    case other = "worship.other"
+    case feeding = "worship.feeding"
+    case water = "worship.water"
+    case removeHarm = "worship.remove_harm"
+    case smile = "worship.smile"
+    case visitSick = "worship.visit_sick"
+    case goodWord = "worship.good_word"
     
     var cadence: String {
         switch self {
@@ -23,7 +28,8 @@ enum WorshipType: String, CaseIterable {
         case .masjid: return "weekly"
         case .hadith: return "daily"
         case .fasting: return "monthly"
-        case .other: return "daily"
+        case .feeding, .water, .removeHarm, .smile, .visitSick, .goodWord: return "daily"
+
         }
     }
     
@@ -41,7 +47,12 @@ enum WorshipType: String, CaseIterable {
         case .masjid: return "مسجد"
         case .hadith: return "حديث"
         case .fasting: return "صيام"
-        case .other: return "اخرى"
+        case .feeding: return "إطعام"
+        case .water: return "ماء"
+        case .removeHarm: return "إزالة الأذى"
+        case .smile: return "ابتسامة"
+        case .visitSick: return "عيادة المريض"
+        case .goodWord: return "كلمة طيبة"
         }
     }
     
@@ -57,7 +68,12 @@ enum WorshipType: String, CaseIterable {
         case .masjid: return "house.lodge"
         case .hadith: return "text.book.closed"
         case .fasting: return "sun.and.horizon"
-        case .other: return "gift"
+        case .feeding: return "fork.knife"
+        case .water: return "drop"
+        case .removeHarm: return "shield"
+        case .smile: return "face.smiling"
+        case .visitSick: return "cross.case"
+        case .goodWord: return "quote.bubble"
         }
     }
 }

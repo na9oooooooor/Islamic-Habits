@@ -112,61 +112,71 @@ struct HomeView: View {
                     }
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 56)
+                .padding(.top, 70)
                 Spacer()
             }
             .padding(.bottom, 100)
             .padding(.top, 20)
 
             // Orbs
+            // Worship grid
+           // Worship grid with fade overlay
             GeometryReader { geo in
-                let baseSize = geo.size.width * 0.33
-                let orbLayout: [(worship: WorshipType, x: CGFloat, y: CGFloat, multiplier: CGFloat)] = [
-                    (.quran,   0.50, 0.25, 0.75),
-                    (.dhikr,   0.15, 0.30, 0.60),
-                    (.sunnah,  0.82, 0.32, 0.62),
-                    (.duaa,    0.35, 0.44, 0.70),
-                    (.sadaqah, 0.72, 0.49, 0.66),
-                    (.qiyam,   0.20, 0.59, 0.57),
-                    (.masjid,  0.56, 0.64, 0.74),
-                    (.hadith,  0.88, 0.67, 0.53),
-                    (.fasting, 0.35, 0.77, 0.59),
-                    (.other,   0.50, 0.85, 0.68)
-                ]
-                ForEach(orbLayout, id: \.worship) { item in
-                    let engine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
-                    
-                    OrbView(
-                        worship: item.worship,
-                        size: baseSize * item.multiplier,
-                        isLogged: engine.loggedTodayByWorship[item.worship.rawValue] ?? false,
-                        selectedLanguage: selectedLanguage,
-                        logCount: engine.todayCountByWorship[item.worship.rawValue] ?? 0
-                    ) {
-                        viewModel.log(worshipType: item.worship, context: context)
+                ZStack(alignment: .bottom) {
+                    ScrollView(showsIndicators: false) {
+                        LazyVGrid(columns: [
+                            GridItem(.flexible()),
+                            GridItem(.flexible()),
+                            GridItem(.flexible())
+                        ], spacing: 12) {
+                            ForEach(WorshipType.allCases, id: \.self) { worship in
+                                let engine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
+                                let isLogged = engine.loggedTodayByWorship[worship.rawValue] ?? false
+                                let logCount = engine.todayCountByWorship[worship.rawValue] ?? 0
+                                
+                                WorshipCard(
+                                    worship: worship,
+                                    isLogged: isLogged,
+                                    logCount: logCount,
+                                    selectedLanguage: selectedLanguage
+                                ) {
+                                    viewModel.log(worshipType: worship, context: context)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 20)
                     }
-                    .position(
-                        x: geo.size.width * item.x,
-                        y: geo.size.height * item.y
+                    .padding(.top, geo.size.height * 0.25)
+                    
+                    // Fade overlay
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.12, green: 0.09, blue: 0.07).opacity(0),
+                            Color(red: 0.12, green: 0.09, blue: 0.07)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
-                    
-         
-                    
+                    .frame(height: 140)
+                    .allowsHitTesting(false)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.bottom, geo.size.height * 0.18)
             }
-
-            // Bottom progress bar
+            // Progress bar
             VStack {
                 Spacer()
                 HabitProgressBar(
-                    progress: Double(viewModel.globalRhythm(logs: allLogs, dailyGoal: dailyGoal))/100,
+                    progress: Double(viewModel.globalRhythm(logs: allLogs, dailyGoal: dailyGoal)) / 100,
                     deedsToday: viewModel.totalDeedsToday(logs: allLogs),
                     selectedLanguage: selectedLanguage,
                     canUndo: viewModel.canUndo(logs: allLogs),
                     onUndo: { viewModel.undoLastLog(logs: allLogs, context: context) }
                 )
                 .padding(.bottom, 100)
-            }
+            }            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .ignoresSafeArea(edges: .bottom)
         }
         .onAppear {
                let has3Logs = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal).has3Logs
@@ -316,3 +326,109 @@ struct OrbView: View {
     }
 }
 
+struct WorshipCard: View {
+    let worship: WorshipType
+    let isLogged: Bool
+    let logCount: Int
+    let selectedLanguage: String
+    let onTap: () -> Void
+    
+    @State private var isPressed = false
+    @State private var isPulsing = false
+    
+    var body: some View {
+        Button {
+            let haptic = UIImpactFeedbackGenerator(style: .medium)
+            haptic.prepare()
+            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                isPressed = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                    isPressed = false
+                }
+            }
+            haptic.impactOccurred()
+            onTap()
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: 6) {
+                    Image(systemName: worship.systemIcon)
+                        .font(.system(size: 20, weight: .light))
+                        .foregroundColor(.white.opacity(isLogged ? 0.5 : 0.7))
+                    
+                    Text(worship.arabicName)
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(.white.opacity(isLogged ? 0.5 : 0.95))
+                    
+                    if selectedLanguage != "ar" {
+                        Text(LocalizedStringKey(worship.nameKey))
+                            .font(.system(size: 10, weight: .light))
+                            .italic()
+                            .foregroundColor(.white.opacity(isLogged ? 0.3 : 0.55))
+                            .environment(\.locale, Locale(identifier: selectedLanguage))
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            isLogged ?
+                            Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.15) :
+                            Color.white.opacity(0.05)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(
+                                    isLogged ?
+                                    Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.4) :
+                                    Color.white.opacity(0.08),
+                                    lineWidth: 0.5
+                                )
+                        )
+                )
+                .scaleEffect(isPressed ? 0.95 : 1.0)
+                .shadow(
+                    color: isLogged ?
+                        Color(red: 0.85, green: 0.72, blue: 0.52).opacity(isPulsing ? 0.3 : 0.1) :
+                        Color.clear,
+                    radius: isPulsing ? 12 : 6
+                )
+                
+                if isLogged && logCount > 0 {
+                    Text("\(logCount)")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.white.opacity(0.9))
+                        .frame(width: 18, height: 18)
+                        .background(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.8))
+                        .clipShape(Circle())
+                        .offset(x: -4, y: 4)
+                }
+            }
+        }
+        .onAppear {
+            guard isLogged else { return }
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                isPulsing = true
+            }
+        }
+        .onChange(of: isLogged) { _, logged in
+            if logged {
+                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                    isPulsing = true
+                }
+            } else {
+                isPulsing = false
+            }
+        }
+    }
+}
+#Preview {
+    let container = try! ModelContainer(
+        for: DeedLog.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+    return HomeView()
+        .modelContainer(container)
+}
