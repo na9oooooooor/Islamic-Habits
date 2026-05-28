@@ -6,5 +6,9 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>UILaunchImageFile</key>
+	<string>LaunchScreen</string>
+	<key>UILaunchImageFile~iphone</key>
+	<string>LaunchScreen</string>
 </dict>
 </plist>

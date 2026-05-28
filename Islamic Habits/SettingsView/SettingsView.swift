@@ -88,7 +88,7 @@ struct SettingsView: View {
                         }
                         Button(localizedString("Cancel", language: selectedLanguage), role: .cancel) {}
                     } message: {
-                        Text(localizedString("This will erase all data stored on this device. Are you sure?", language: selectedLanguage))
+                        Text(localizedString("settings.delete.message", language: selectedLanguage))
                     }
                 }
                 
@@ -105,7 +105,7 @@ struct SettingsView: View {
                             .font(.system(size: 15, weight: .light))
                             .foregroundColor(.white.opacity(0.8))
                         Spacer()
-                        Text("1.0.0")
+                        Text("2.0")
                             .font(.system(size: 13))
                             .foregroundColor(.white.opacity(0.4))
                     }

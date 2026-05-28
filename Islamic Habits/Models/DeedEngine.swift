@@ -49,4 +49,28 @@ struct DeedEngine {
             return true
          } else {return false}
     }
+    
+    func countLast66Days(for worshipType: WorshipType) -> Int {
+        let sixtySixDaysAgo = Calendar.current.date(byAdding: .day, value: -66, to: startOfIslamicTomorrow)!
+        return logs.filter {
+            $0.worshipType == worshipType.rawValue &&
+            $0.loggedAt >= sixtySixDaysAgo
+        }.count+1
+    }
+    
+    func daysSinceLastLog(for worshipType: WorshipType) -> Int? {
+        let worshipLogs = logs.filter { $0.worshipType == worshipType.rawValue }
+        guard let lastLog = worshipLogs.max(by: { $0.loggedAt < $1.loggedAt }) else { return nil }
+        return Calendar.current.dateComponents([.day], from: lastLog.loggedAt, to: Date()).day
+    }
+
+    func isOverdue(for worshipType: WorshipType) -> Bool {
+        guard let days = daysSinceLastLog(for: worshipType) else { return false }
+        switch worshipType.cadence {
+        case "daily": return days >= 3
+        case "weekly": return days >= 14
+        case "monthly": return days >= 60
+        default: return false
+        }
+    }
 }

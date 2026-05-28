@@ -15,17 +15,17 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="launch" translatesAutoresizingMaskIntoConstraints="NO" id="GiS-p6-Oel">
-                                <rect key="frame" x="-242" y="-1023" width="876" height="2898"/>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchScreen" translatesAutoresizingMaskIntoConstraints="NO" id="OMX-qJ-cg0">
+                                <rect key="frame" x="-341" y="-371" width="1075" height="1646"/>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
-                        <color key="backgroundColor" red="0.2736816406" green="0.1691894531" blue="0.1925048828" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                        <color key="backgroundColor" red="0.6015625" green="0.83203125" blue="0.2678222656" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
-                            <constraint firstItem="GiS-p6-Oel" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="-242" id="DRm-Js-Jfv"/>
-                            <constraint firstAttribute="bottom" secondItem="GiS-p6-Oel" secondAttribute="bottom" constant="-1023" id="El3-w7-1gQ"/>
-                            <constraint firstItem="GiS-p6-Oel" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" constant="-1023" id="OJg-K7-FaL"/>
-                            <constraint firstAttribute="trailing" secondItem="GiS-p6-Oel" secondAttribute="trailing" constant="-241" id="ejs-x6-3lU"/>
+                            <constraint firstItem="OMX-qJ-cg0" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" constant="-371" id="8gh-mN-gXj"/>
+                            <constraint firstAttribute="trailing" secondItem="OMX-qJ-cg0" secondAttribute="trailing" constant="-341" id="chG-aJ-9gj"/>
+                            <constraint firstItem="OMX-qJ-cg0" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="-341" id="x58-Zy-jm9"/>
+                            <constraint firstAttribute="bottom" secondItem="OMX-qJ-cg0" secondAttribute="bottom" constant="-423" id="zFr-9E-x1f"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -35,6 +35,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="launch" width="2732" height="2732"/>
+        <image name="LaunchScreen" width="683" height="683"/>
     </resources>
 </document>

@@ -16,7 +16,9 @@ struct HomeView: View {
     @State private var showLanguagePicker = false
     @State private var showUpgradePopup: Bool = false
     @Environment(\.requestReview) var requestReview
-
+    @State private var postLogWorship: WorshipType? = nil
+    @State private var postLogInsight: String = ""
+    @State private var postLogCount66: Int = 0
 
     var levelText: String {
         if selectedLanguage == "ar" {
@@ -118,9 +120,7 @@ struct HomeView: View {
             .padding(.bottom, 100)
             .padding(.top, 20)
 
-            // Orbs
             // Worship grid
-           // Worship grid with fade overlay
             GeometryReader { geo in
                 ZStack(alignment: .bottom) {
                     ScrollView(showsIndicators: false) {
@@ -133,19 +133,29 @@ struct HomeView: View {
                                 let engine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
                                 let isLogged = engine.loggedTodayByWorship[worship.rawValue] ?? false
                                 let logCount = engine.todayCountByWorship[worship.rawValue] ?? 0
-                                
+                                let isOverdue = engine.isOverdue(for: worship)
+                                let wasLoggedBefore = isLogged  // capture before tap
+
                                 WorshipCard(
                                     worship: worship,
                                     isLogged: isLogged,
                                     logCount: logCount,
-                                    selectedLanguage: selectedLanguage
+                                    selectedLanguage: selectedLanguage,
+                                    isOverdue: isOverdue
                                 ) {
                                     viewModel.log(worshipType: worship, context: context)
+                                    
+                                    if !wasLoggedBefore {
+                                        let freshEngine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
+                                        postLogInsight = worship.randomInsight
+                                        postLogCount66 = freshEngine.countLast66Days(for: worship)
+                                        postLogWorship = worship
+                                    }
                                 }
                             }
                         }
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 100) 
                     }
                     .padding(.top, geo.size.height * 0.25)
                     
@@ -185,6 +195,17 @@ struct HomeView: View {
                    requestReview()
                }
         }
+        .sheet(item: $postLogWorship) { worship in
+            PostLogView(
+                worship: worship,
+                insightKey: postLogInsight,
+                countLast66: postLogCount66,
+                totalToday: viewModel.totalDeedsToday(logs: allLogs),
+                selectedLanguage: selectedLanguage,
+                onDismiss: { postLogWorship = nil }
+            )
+            .presentationDetents([.fraction(0.75)])
+        }
         .sheet(isPresented: $showUpgradePopup) {
             CommitmentUpgradeView()
                 .presentationDetents([.fraction(0.75)])
@@ -202,136 +223,15 @@ struct HomeView: View {
 }
 
 
-struct OrbView: View {
-    let worship: WorshipType
-    let size: CGFloat
-    let isLogged: Bool
-    let selectedLanguage: String
-    let logCount: Int
-    let onTap: () -> Void
-    
-    @State private var isPulsing = false
-    @State private var isPressed = false
-    @State private var showRipple = false
-
-    var body: some View {
-        ZStack {
-            if showRipple {
-                Circle()
-                    .stroke(
-                        Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.6),
-                        lineWidth: 1.5
-                    )
-                    .frame(width: size, height: size)
-                    .scaleEffect(showRipple ? 1.8 : 1.0)
-                    .opacity(showRipple ? 0 : 0.6)
-                    .animation(.easeOut(duration: 0.6), value: showRipple)
-            }
-            // Outer glow
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            Color(red: 0.85, green: 0.72, blue: 0.52).opacity(isLogged ? 0.35 : 0.28),
-                            Color.clear
-                        ],
-                        center: .center,
-                        startRadius: size * 0.3,
-                        endRadius: size * 0.9
-                    )
-                )
-                .frame(width: size * 1.4, height: size * 1.4)
-                .scaleEffect(isLogged && isPulsing ? 1.06 : 1.0)
-                .onAppear {
-                    guard isLogged else { return }
-                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                        isPulsing = true
-                    }
-                }
-                .onChange(of: isLogged) { _, logged in
-                    if logged {
-                        withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                            isPulsing = true
-                        }
-                    } else {
-                        isPulsing = false
-                    }
-                }
-            // Main orb
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            Color(red: 0.90, green: 0.78, blue: 0.58),
-                            Color(red: 0.65, green: 0.52, blue: 0.35),
-                            Color(red: 0.40, green: 0.30, blue: 0.18)
-                        ],
-                        center: UnitPoint(x: 0.35, y: 0.25),
-                        startRadius: 0,
-                        endRadius: size * 0.7
-                    )
-                )
-                .frame(width: size, height: size)
-                .opacity(isLogged ? 0.45 : 1.0)
-                .scaleEffect(isPressed ? 1.08 : 1.0)
-            
-            // Text
-            VStack(spacing: 2) {
-                Image(systemName: worship.systemIcon)
-                    .font(.system(size: size * 0.14, weight: .light))
-                    .foregroundColor(.white.opacity(0.7))
-                Text(worship.arabicName)
-                    .font(.system(size: size * 0.18, weight: .regular))
-                    .foregroundColor(.white.opacity(0.95))
-                if selectedLanguage != "ar" {
-                    
-                    Text(LocalizedStringKey(worship.nameKey))
-                        .font(.system(size: size * 0.16, weight: .light))
-                        .italic()
-                        .foregroundColor(.white.opacity(0.6))
-                        .environment(\.locale, Locale(identifier: selectedLanguage))
-                }}
-            .scaleEffect(isPressed ? 1.05 : 1.0)
-            // Count badge
-            if isLogged {
-                Text("\(logCount)")
-                    .font(.system(size: size * 0.13, weight: .medium))
-                    .foregroundColor(.white.opacity(0.9))
-                    .frame(width: size * 0.28, height: size * 0.28)
-                    .background(Color.black.opacity(0.4))
-                    .clipShape(Circle())
-                    .offset(x: size * 0.38, y: -(size * 0.42))
-                    .transition(.scale.combined(with: .opacity))
-            }
-        }
-        .onTapGesture {
-            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
-                isPressed = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                    isPressed = false
-                }
-            }
-            showRipple = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
-                showRipple = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                    showRipple = false
-                }
-            }
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            onTap()
-        }
-    }
-}
 
 struct WorshipCard: View {
     let worship: WorshipType
     let isLogged: Bool
     let logCount: Int
     let selectedLanguage: String
+    let isOverdue: Bool
     let onTap: () -> Void
+
     
     @State private var isPressed = false
     @State private var isPulsing = false
@@ -363,7 +263,7 @@ struct WorshipCard: View {
                     
                     if selectedLanguage != "ar" {
                         Text(LocalizedStringKey(worship.nameKey))
-                            .font(.system(size: 10, weight: .light))
+                            .font(.system(size: 13, weight: .light))
                             .italic()
                             .foregroundColor(.white.opacity(isLogged ? 0.3 : 0.55))
                             .environment(\.locale, Locale(identifier: selectedLanguage))
@@ -383,8 +283,10 @@ struct WorshipCard: View {
                                 .stroke(
                                     isLogged ?
                                     Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.4) :
+                                    isOverdue ?
+                                    Color(red: 0.85, green: 0.72, blue: 0.52).opacity(isPulsing ? 0.4 : 0.15) :
                                     Color.white.opacity(0.08),
-                                    lineWidth: 0.5
+                                    lineWidth: isOverdue ? 1.0 : 0.5
                                 )
                         )
                 )
@@ -405,6 +307,14 @@ struct WorshipCard: View {
                         .clipShape(Circle())
                         .offset(x: -4, y: 4)
                 }
+                // Overdue indicator
+//                if isOverdue && !isLogged {
+//                    Circle()
+//                        .fill(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.6))
+//                        .frame(width: 6, height: 6)
+//                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+//                        .padding(8)
+//                }
             }
         }
         .onAppear {
@@ -424,11 +334,11 @@ struct WorshipCard: View {
         }
     }
 }
-#Preview {
-    let container = try! ModelContainer(
-        for: DeedLog.self,
-        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-    )
-    return HomeView()
-        .modelContainer(container)
-}
+//#Preview {
+//    let container = try! ModelContainer(
+//        for: DeedLog.self,
+//        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+//    )
+//    return HomeView()
+//        .modelContainer(container)
+//}

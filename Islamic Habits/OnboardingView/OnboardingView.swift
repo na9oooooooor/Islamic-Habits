@@ -37,9 +37,9 @@ struct OnboardingView: View {
                         Spacer()
                         
                         VStack(spacing: 12) {
-                            Text("Choose your language")
+                            Text(localizedString("Choose your language", language: selectedLanguage))
                                 .font(.system(size: 13, weight: .light))
-                                .tracking(1.5)
+                                .tracking(selectedLanguage == "ar" ? 0 : 1.5)
                                 .foregroundColor(.white.opacity(0.4))
                             
                             ForEach(AppLanguage.allCases, id: \.self) { language in
@@ -77,7 +77,7 @@ struct OnboardingView: View {
                                 showExplain = true
                             }
                         } label: {
-                            Text("Continue")
+                            Text(localizedString("Continue", language: selectedLanguage))
                                 .font(.system(size: 15, weight: .medium))
                                 .foregroundColor(Color(red: 0.12, green: 0.09, blue: 0.07))
                                 .frame(maxWidth: .infinity)
