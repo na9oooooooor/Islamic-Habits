@@ -73,4 +73,107 @@ struct DeedEngine {
         default: return false
         }
     }
+    // MARK: - Streak & Level
+
+    func rawStreak(for worshipType: WorshipType) -> Int {
+        let calendar = Calendar.current
+        var currentDayStart = startOfIslamicDay
+        var streak = 0
+
+        while true {
+            let nextDayStart = calendar.date(byAdding: .day, value: 1, to: currentDayStart)!
+            let hasLog = logs.contains {
+                $0.worshipType == worshipType.rawValue &&
+                $0.loggedAt >= currentDayStart &&
+                $0.loggedAt < nextDayStart
+            }
+            guard hasLog else { break }
+            streak += 1
+            currentDayStart = calendar.date(byAdding: .day, value: -1, to: currentDayStart)!
+        }
+        return streak
+    }
+
+    func level(for worshipType: WorshipType) -> DeedLevel {
+        DeedLevel.from(streak: rawStreak(for: worshipType))
+    }
+
+    func streak(for worshipType: WorshipType) -> Int {
+        let calendar = Calendar.current
+        let graceDays = level(for: worshipType).graceDays
+        var currentDayStart = startOfIslamicDay
+        var streak = 0
+        var consecutiveMisses = 0
+
+        while true {
+            let nextDayStart = calendar.date(byAdding: .day, value: 1, to: currentDayStart)!
+            let hasLog = logs.contains {
+                $0.worshipType == worshipType.rawValue &&
+                $0.loggedAt >= currentDayStart &&
+                $0.loggedAt < nextDayStart
+            }
+
+            if hasLog {
+                streak += 1
+                consecutiveMisses = 0
+            } else {
+                consecutiveMisses += 1
+                if consecutiveMisses > graceDays { break }
+            }
+
+            currentDayStart = calendar.date(byAdding: .day, value: -1, to: currentDayStart)!
+        }
+        return streak
+    }
+
+    func graceDaysUsed(for worshipType: WorshipType) -> Int {
+        let calendar = Calendar.current
+        var currentDayStart = startOfIslamicDay
+        var used = 0
+        let graceDays = level(for: worshipType).graceDays
+
+        while true {
+            let nextDayStart = calendar.date(byAdding: .day, value: 1, to: currentDayStart)!
+            let hasLog = logs.contains {
+                $0.worshipType == worshipType.rawValue &&
+                $0.loggedAt >= currentDayStart &&
+                $0.loggedAt < nextDayStart
+            }
+
+            if hasLog { break }
+            used += 1
+            if used > graceDays { break }
+
+            currentDayStart = calendar.date(byAdding: .day, value: -1, to: currentDayStart)!
+        }
+        return used
+    }
+
+    func graceDaysRemaining(for worshipType: WorshipType) -> Int {
+        let total = level(for: worshipType).graceDays
+        let used = graceDaysUsed(for: worshipType)
+        return max(0, total - used)
+    }
+
+    func streakStatus(for worshipType: WorshipType) -> StreakStatus {
+        let used = graceDaysUsed(for: worshipType)
+        let total = level(for: worshipType).graceDays
+        
+        if used == 0 { return .healthy }
+        if used <= total { return .warning(remaining: total - used) }
+        return .broken
+    }
+    
+    func effectiveLevel(for worshipType: WorshipType) -> DeedLevel {
+        let currentLevel = level(for: worshipType)
+        
+        switch streakStatus(for: worshipType) {
+        case .healthy, .warning:
+            return currentLevel  // no drop yet
+        case .broken:
+            // drop one level down, floor at .niyyah
+            let droppedRaw = max(1, currentLevel.rawValue - 1)
+            return DeedLevel(rawValue: droppedRaw) ?? .niyyah
+        }
+    }
 }
