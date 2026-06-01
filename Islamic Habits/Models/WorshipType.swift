@@ -68,7 +68,7 @@ enum WorshipType: String, CaseIterable {
     }
     
     
-    var systemIcon: String {
+    var icon: String {
         switch self {
         case .quran: return "book"
         case .dhikr: return "circle.grid.3x3"

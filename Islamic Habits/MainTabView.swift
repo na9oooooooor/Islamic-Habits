@@ -6,7 +6,8 @@ struct MainTabView: View {
     @State private var selectedTab: Tab = .home
     @State private var previousTab: Tab = .home
     
-    let tabOrder: [Tab] = [.home, .calendar, .settings]
+    let tabOrder: [Tab] = [.home, .focus, .calendar, .settings]
+
     
     func tabEdge(for tab: Tab) -> Edge {
         let current = tabOrder.firstIndex(of: tab) ?? 0
@@ -21,6 +22,9 @@ struct MainTabView: View {
                 case .home:
                     HomeView()
                         .transition(.move(edge: tabEdge(for: .home)))
+                case .focus:
+                    FocusView()
+                        .transition(.move(edge: tabEdge(for: .focus)))
                 case .calendar:
                     CalendarView()
                         .transition(.move(edge: tabEdge(for: .calendar)))
@@ -33,6 +37,7 @@ struct MainTabView: View {
             
             HStack(spacing: 0) {
                 TabBarButton(icon: "house.fill", tab: .home, selectedTab: $selectedTab, previousTab: $previousTab)
+                TabBarButton(icon: "scope", tab: .focus, selectedTab: $selectedTab, previousTab: $previousTab)
                 TabBarButton(icon: "calendar", tab: .calendar, selectedTab: $selectedTab, previousTab: $previousTab)
                 TabBarButton(icon: "gearshape.fill", tab: .settings, selectedTab: $selectedTab, previousTab: $previousTab)
             }
@@ -54,6 +59,7 @@ struct MainTabView: View {
 
 enum Tab: CaseIterable {
     case home
+    case focus
     case calendar
     case settings
 }

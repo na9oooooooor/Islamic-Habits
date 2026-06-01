@@ -24,7 +24,7 @@ struct PostLogView: View {
                 
                 // Icon + name
                 VStack(spacing: 12) {
-                    Image(systemName: worship.systemIcon)
+                    Image(systemName: worship.icon)
                         .font(.system(size: 40, weight: .light))
                         .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.8))
                     

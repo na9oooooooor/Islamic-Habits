@@ -253,7 +253,7 @@ struct WorshipCard: View {
         } label: {
             ZStack(alignment: .topTrailing) {
                 VStack(spacing: 6) {
-                    Image(systemName: worship.systemIcon)
+                    Image(systemName: worship.icon)
                         .font(.system(size: 20, weight: .light))
                         .foregroundColor(.white.opacity(isLogged ? 0.5 : 0.7))
                     

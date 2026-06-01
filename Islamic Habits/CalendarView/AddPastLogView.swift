@@ -62,7 +62,7 @@ struct AddPastLogView: View {
                                 selectedWorship = worship
                             } label: {
                                 HStack(spacing: 12) {
-                                    Image(systemName: worship.systemIcon)
+                                    Image(systemName: worship.icon)
                                         .font(.system(size: 16, weight: .light))
                                         .foregroundColor(.white.opacity(0.6))
                                         .frame(width: 24)
