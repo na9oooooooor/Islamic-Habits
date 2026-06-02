@@ -10,6 +10,7 @@ struct FocusDeedCard: View {
 
     private let gold = Color("#D9B883")
     private let background = Color("#1F1712")
+    
 
     var body: some View {
         Button(action: onTap) {

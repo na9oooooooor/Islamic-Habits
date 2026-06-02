@@ -15,6 +15,9 @@ struct FocusDeedProgressCard: View {
     let status: StreakStatus
     let progress: Double
     let selectedLanguage: String
+    let loggedDays: [Date: Bool]      // new
+
+    @State private var isExpanded = false
 
     private let gold = Color("#D9B883")
     private let background = Color("#1F1712")
@@ -55,16 +58,13 @@ struct FocusDeedProgressCard: View {
     var body: some View {
         VStack(spacing: 16) {
 
-            // Top row — icon, name, level
+            // Top row — always visible
             HStack(spacing: 14) {
                 Image(systemName: worship.icon)
                     .font(.system(size: 28))
                     .foregroundColor(gold)
                     .frame(width: 44, height: 44)
-                    .background(
-                        Circle()
-                            .fill(gold.opacity(0.1))
-                    )
+                    .background(Circle().fill(gold.opacity(0.1)))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(displayName)
@@ -88,9 +88,14 @@ struct FocusDeedProgressCard: View {
                         RoundedRectangle(cornerRadius: 8)
                             .fill(gold)
                     )
+
+                // Expand chevron
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 12))
+                    .foregroundColor(gold.opacity(0.5))
             }
 
-            // Progress bar
+            // Progress bar — always visible
             VStack(spacing: 6) {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
@@ -106,7 +111,6 @@ struct FocusDeedProgressCard: View {
                 }
                 .frame(height: 6)
 
-                // Status text
                 HStack {
                     Text(statusText)
                         .font(.system(size: 11))
@@ -119,6 +123,15 @@ struct FocusDeedProgressCard: View {
                         .foregroundColor(.white.opacity(0.3))
                 }
             }
+
+            // Heatmap — only when expanded
+            if isExpanded {
+                Divider()
+                    .background(Color.white.opacity(0.08))
+
+                DeedHeatmapView(loggedDays: loggedDays)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .padding(18)
         .background(
@@ -129,5 +142,10 @@ struct FocusDeedProgressCard: View {
                         .stroke(statusColor.opacity(0.2), lineWidth: 1)
                 )
         )
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                isExpanded.toggle()
+            }
+        }
     }
 }

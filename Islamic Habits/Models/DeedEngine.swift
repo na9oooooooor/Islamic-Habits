@@ -176,4 +176,111 @@ struct DeedEngine {
             return DeedLevel(rawValue: droppedRaw) ?? .niyyah
         }
     }
+    
+    func last66DaysLogged(for worshipType: WorshipType) -> [Date: Bool] {
+        var result: [Date: Bool] = [:]
+        let calendar = Calendar.current
+        
+        for dayOffset in 0..<66 {
+            let islamicDay = calendar.date(byAdding: .day, value: -dayOffset, to: startOfIslamicDay)!
+            let midnightDay = calendar.startOfDay(for: islamicDay)  // normalize to midnight
+            
+            let dayEnd = calendar.date(byAdding: .day, value: 1, to: islamicDay)!
+            
+            let hasLog = logs.contains {
+                $0.worshipType == worshipType.rawValue &&
+                $0.loggedAt >= islamicDay &&
+                $0.loggedAt < dayEnd
+            }
+            
+            result[midnightDay] = hasLog  // store with midnight key
+        }
+        
+        return result
+    }
+    
+    func mirrorMessage(focusDeeds: [WorshipType], language: String) -> MirrorMessage? {
+        guard !focusDeeds.isEmpty else { return nil }
+
+        // 1. ALERT — streak broken or last grace day
+        for worship in focusDeeds {
+            let status = streakStatus(for: worship)
+            let name = worship.arabicName
+            switch status {
+            case .broken:
+                return MirrorMessage(
+                    priority: .alert,
+                    icon: "exclamationmark.circle",
+                    title: name,
+                    subtitle: localizedMirror("mirror.streak.broken", language: language)
+                )
+            case .warning(let remaining) where remaining == 0:
+                return MirrorMessage(
+                    priority: .alert,
+                    icon: "exclamationmark.triangle",
+                    title: name,
+                    subtitle: localizedMirror("mirror.grace.last", language: language)
+                )
+            default: break
+            }
+        }
+
+        // 2. NUDGE — not logged today
+        for worship in focusDeeds {
+            let isLogged = loggedTodayByWorship[worship.rawValue] ?? false
+            if !isLogged {
+                return MirrorMessage(
+                    priority: .nudge,
+                    icon: worship.icon,
+                    title: worship.arabicName,
+                    subtitle: localizedMirror("mirror.not.logged", language: language)
+                )
+            }
+        }
+
+        // 3. PROGRESS — streak worth celebrating (multiples of 7)
+        for worship in focusDeeds {
+            let s = streak(for: worship)
+            if s > 0 && s % 7 == 0 {
+                return MirrorMessage(
+                    priority: .progress,
+                    icon: "flame",
+                    title: worship.arabicName,
+                    subtitle: "\(s) \(localizedMirror("mirror.day.streak", language: language))"
+                )
+            }
+        }
+
+        // 4. LEVEL UP — within 5 days of next level
+        for worship in focusDeeds {
+            let s = streak(for: worship)
+            let currentLevel = effectiveLevel(for: worship)
+            if currentLevel != .tabiah {
+                let daysLeft = currentLevel.progressRange.upperBound - s
+                if daysLeft <= 5 && daysLeft > 0 {
+                    let nextLevel = DeedLevel(rawValue: currentLevel.rawValue + 1) ?? .tabiah
+                    return MirrorMessage(
+                        priority: .levelUp,
+                        icon: "arrow.up.circle",
+                        title: worship.arabicName,
+                        subtitle: "\(daysLeft) \(localizedMirror("mirror.days.to", language: language)) \(nextLevel.arabicName)"
+                    )
+                }
+            }
+        }
+
+        // 5. QUOTE — pick random focus deed insight
+        let randomDeed = focusDeeds.randomElement()!
+        return MirrorMessage(
+            priority: .quote,
+            icon: "quote.bubble",
+            title: randomDeed.arabicName,
+            subtitle: localizedMirror(randomDeed.randomInsight, language: language)
+        )
+    }
+
+    // Helper — reuses your existing localizedString
+    private func localizedMirror(_ key: String, language: String) -> String {
+        localizedString(key, language: language)
+    }
 }

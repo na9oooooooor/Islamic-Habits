@@ -96,6 +96,7 @@ struct FocusView: View {
                             let level = engine.effectiveLevel(for: worship)
                             let status = engine.streakStatus(for: worship)
                             let progress = level.progress(streak: streak)
+                            let loggedDays = engine.last66DaysLogged(for: worship)  // new
 
                             FocusDeedProgressCard(
                                 worship: worship,
@@ -103,7 +104,8 @@ struct FocusView: View {
                                 level: level,
                                 status: status,
                                 progress: progress,
-                                selectedLanguage: selectedLanguage
+                                selectedLanguage: selectedLanguage,
+                                loggedDays: loggedDays                              // new
                             )
                             .padding(.horizontal, 20)
                         }

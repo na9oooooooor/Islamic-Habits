@@ -19,6 +19,8 @@ struct HomeView: View {
     @State private var postLogWorship: WorshipType? = nil
     @State private var postLogInsight: String = ""
     @State private var postLogCount66: Int = 0
+    @AppStorage("focusDeeds") var focusDeedsRaw: String = ""
+
 
     var levelText: String {
         if selectedLanguage == "ar" {
@@ -26,6 +28,12 @@ struct HomeView: View {
         } else {
             return "\(localizedString("general.level", language: selectedLanguage)) \(dailyGoal)  ·  \(dailyGoal) \(dailyGoal > 1 ? localizedString("general.deeds", language: selectedLanguage) : localizedString("general.deed", language: selectedLanguage)) \(localizedString("general.a_day", language: selectedLanguage))"
         }
+    }
+    
+    var focusDeeds: [WorshipType] {
+        focusDeedsRaw
+            .split(separator: ",")
+            .compactMap { WorshipType(rawValue: String($0)) }
     }
 
     var formattedDate: String {
@@ -69,7 +77,7 @@ struct HomeView: View {
 
             // Top header
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
+                HStack(alignment: .top, spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(hijriDate)
                             .font(.system(size: 11, weight: .medium))
@@ -97,19 +105,29 @@ struct HomeView: View {
                                     .fill(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.12))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 6)
-                                            .stroke(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.3), lineWidth: 0.5)
+                                            .stroke(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.2), lineWidth: 0.5)
                                     )
                             )
                     }
+
                     Spacer()
-                    if upgradeIconVisible {
-                        Button {
-                            showUpgradePopup = true
-                        } label: {
-                            Image(systemName: "arrow.up.circle")
-                                .font(.system(size: 18))
-                                .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.8))
-                                .padding(.trailing, 8)
+
+                    // Right column — upgrade icon + mirror box stacked
+                    VStack(alignment: .trailing, spacing: 8) {
+                        if upgradeIconVisible {
+                            Button {
+                                showUpgradePopup = true
+                            } label: {
+                                Image(systemName: "arrow.up.circle")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.8))
+                            }
+                        }
+
+                        if let message = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
+                            .mirrorMessage(focusDeeds: focusDeeds, language: selectedLanguage) {
+                            MirrorBoxView(message: message)
+                                .frame(width: 130)
                         }
                     }
                 }
@@ -141,7 +159,8 @@ struct HomeView: View {
                                     isLogged: isLogged,
                                     logCount: logCount,
                                     selectedLanguage: selectedLanguage,
-                                    isOverdue: isOverdue
+                                    isOverdue: isOverdue,
+                                    isFocused: focusDeeds.contains(worship)  // new
                                 ) {
                                     viewModel.log(worshipType: worship, context: context)
                                     
@@ -230,6 +249,7 @@ struct WorshipCard: View {
     let logCount: Int
     let selectedLanguage: String
     let isOverdue: Bool
+    let isFocused: Bool  // add this
     let onTap: () -> Void
 
     
@@ -283,10 +303,12 @@ struct WorshipCard: View {
                                 .stroke(
                                     isLogged ?
                                     Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.4) :
+                                    isFocused ?
+                                    Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.5) :
                                     isOverdue ?
                                     Color(red: 0.85, green: 0.72, blue: 0.52).opacity(isPulsing ? 0.4 : 0.15) :
                                     Color.white.opacity(0.08),
-                                    lineWidth: isOverdue ? 1.0 : 0.5
+                                    lineWidth: isFocused ? 1.5 : isOverdue ? 1.0 : 0.5
                                 )
                         )
                 )
