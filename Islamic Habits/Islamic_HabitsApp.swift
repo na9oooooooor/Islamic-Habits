@@ -5,6 +5,8 @@ import SwiftData
 struct Islamic_HabitsApp: App {
     
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
+    @AppStorage("hasSeenFocusOnboarding") var hasSeenFocusOnboarding: Bool = false
+
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -21,10 +23,12 @@ struct Islamic_HabitsApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if hasCompletedOnboarding {
-                MainTabView()
-            } else {
+            if !hasCompletedOnboarding {
                 OnboardingView()
+            } else if !hasSeenFocusOnboarding {
+                FocusOnboardingView()
+            } else {
+                MainTabView()
             }
         }
         .modelContainer(sharedModelContainer)

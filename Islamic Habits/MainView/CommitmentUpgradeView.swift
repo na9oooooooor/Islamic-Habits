@@ -39,13 +39,13 @@ struct CommitmentUpgradeView: View {
                 
                 // Message
                 VStack(spacing: 12) {
-                    Text("You've been showing up consistently.")
+                    Text(localizedString("You've been showing up consistently.", language: selectedLanguage))
                         .font(.system(size: 22, weight: .light))
                         .italic()
                         .foregroundColor(.white.opacity(0.9))
                         .multilineTextAlignment(.center)
                     
-                    Text("You're ready to take on one more deed a day — whenever you feel ready.")
+                    Text(localizedString("You're ready to take on one more deed a day — whenever you feel ready.", language: selectedLanguage))
                         .font(.system(size: 15, weight: .light))
                         .foregroundColor(.white.opacity(0.5))
                         .multilineTextAlignment(.center)
@@ -62,7 +62,7 @@ struct CommitmentUpgradeView: View {
                         upgradeIconVisible = false
                         dismiss()
                     } label: {
-                        Text("I'm ready — \(dailyGoal + 1) deeds a day")
+                        Text(String(format: localizedString("I'm ready — %lld deeds a day", language: selectedLanguage), dailyGoal + 1))
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(Color(red: 0.12, green: 0.09, blue: 0.07))
                             .frame(maxWidth: .infinity)
@@ -74,7 +74,7 @@ struct CommitmentUpgradeView: View {
                     Button {
                         dismiss()
                     } label: {
-                        Text("Not yet")
+                        Text(localizedString("Not yet", language: selectedLanguage))
                             .font(.system(size: 15, weight: .light))
                             .foregroundColor(.white.opacity(0.4))
                             .frame(maxWidth: .infinity)

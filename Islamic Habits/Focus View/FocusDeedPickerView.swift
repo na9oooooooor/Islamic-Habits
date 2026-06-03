@@ -45,11 +45,10 @@ struct FocusDeedPickerView: View {
 
                 // Header
                 VStack(spacing: 8) {
-                    Text("Focus Deeds")
+                    Text(localizedString("focus.picker.title", language: selectedLanguage))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(gold)
-
-                    Text("Pick up to 3 deeds to focus on building as habits")
+                    Text(localizedString("focus.picker.subtitle", language: selectedLanguage))
                         .font(.system(size: 14))
                         .foregroundColor(.white.opacity(0.5))
                         .multilineTextAlignment(.center)
@@ -93,12 +92,13 @@ struct FocusDeedPickerView: View {
                 Spacer()
 
                 VStack(spacing: 12) {
-                    Text("\(focusDeeds.count) of 3 selected")
+                    Text("\(focusDeeds.count) \(localizedString("focus.picker.selected", language: selectedLanguage))")
                         .font(.system(size: 13))
                         .foregroundColor(.white.opacity(0.4))
 
+
                     Button(action: onContinue) {
-                        Text("Continue")
+                        Text(localizedString("Continue", language: selectedLanguage))
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(focusDeeds.isEmpty ? .gray : Color("#1F1712"))
                             .frame(maxWidth: .infinity)
@@ -112,7 +112,7 @@ struct FocusDeedPickerView: View {
                     .padding(.horizontal, 20)
 
                     Button(action: onSkip) {
-                        Text("Skip for now")
+                        Text(localizedString("focus.picker.skip", language: selectedLanguage))
                             .font(.system(size: 14))
                             .foregroundColor(Color("#D9B883").opacity(0.6))
                     }

@@ -42,11 +42,11 @@ struct FocusView: View {
                         .font(.system(size: 48))
                         .foregroundColor(gold.opacity(0.4))
 
-                    Text("No Focus Deeds Yet")
+                    Text(localizedString("focus.view.empty.subtitle", language: selectedLanguage))
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(gold)
 
-                    Text("Pick up to 3 deeds to track\nyour habit progress")
+                    Text(localizedString("focus.view.empty.subtitle", language: selectedLanguage))
                         .font(.system(size: 14))
                         .foregroundColor(.white.opacity(0.4))
                         .multilineTextAlignment(.center)
@@ -54,7 +54,7 @@ struct FocusView: View {
                     Button {
                         showPicker = true
                     } label: {
-                        Text("Pick Focus Deeds")
+                        Text(localizedString("focus.view.empty.button", language: selectedLanguage))
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(background)
                             .padding(.horizontal, 28)
@@ -72,7 +72,7 @@ struct FocusView: View {
 
                         // Header
                         HStack {
-                            Text("Focus Deeds")
+                            Text(localizedString("focus.view.title", language: selectedLanguage))
                                 .font(.system(size: 22, weight: .bold))
                                 .foregroundColor(gold)
 

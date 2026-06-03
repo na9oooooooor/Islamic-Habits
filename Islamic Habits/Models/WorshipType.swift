@@ -24,17 +24,17 @@ enum WorshipType: String, CaseIterable {
     var cadence: String {
         switch self {
         case .quran: return "daily"
-        case .dhikr: return "daily"
+        case .dhikr: return "weekly"
         case .sunnahSalat: return "daily"
         case .duaa: return "daily"
         case .sadaqah: return "monthly"
         case .qiyam: return "weekly"
         case .masjid: return "weekly"
         case .sunnah: return "weekly"
-        case .hadith: return "daily"
+        case .hadith: return "weekly"
         case .fasting: return "monthly"
-        case .feeding, .water, .removeHarm, .smile, .visitSick, .goodWord: return "daily"
-        case .other, .islamicStudy, .advice: return "daily"
+        case .feeding, .water, .removeHarm, .smile, .visitSick, .goodWord: return "weekly"
+        case .other, .islamicStudy, .advice: return "weekly"
 
 
         }
@@ -42,6 +42,24 @@ enum WorshipType: String, CaseIterable {
     
     
     var nameKey: String { rawValue }
+    
+    var streakUnit: Int {
+        switch cadence {
+        case "daily":   return 1    // 1 day window
+        case "weekly":  return 7    // 7 day window
+        case "monthly": return 30   // 30 day window
+        default:        return 1
+        }
+    }
+
+    var streakLabel: String {
+        switch cadence {
+        case "daily":   return "day"
+        case "weekly":  return "week"
+        case "monthly": return "month"
+        default:        return "day"
+        }
+    }
     
     var arabicName: String {
         switch self {

@@ -30,3 +30,9 @@ func islamicStartOfDay(for date: Date) -> Date {
     }
     return boundary
 }
+
+func todayString() -> String {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd"
+    return formatter.string(from: Date())
+}

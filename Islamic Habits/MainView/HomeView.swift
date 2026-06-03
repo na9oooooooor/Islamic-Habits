@@ -20,8 +20,16 @@ struct HomeView: View {
     @State private var postLogInsight: String = ""
     @State private var postLogCount66: Int = 0
     @AppStorage("focusDeeds") var focusDeedsRaw: String = ""
+    @AppStorage("smartNotifications") var smartNotificationsEnabled: Bool = true
+    @AppStorage("lastMilestoneDate") var lastMilestoneDateString: String = ""
+    
+    @State private var showDailyMilestone = false
+    @State private var pendingPostLogWorship: WorshipType? = nil
 
-
+    
+    
+    
+    
     var levelText: String {
         if selectedLanguage == "ar" {
             return "\(localizedString("general.a_day", language: selectedLanguage)) \(dailyGoal > 1 ? localizedString("general.deeds", language: selectedLanguage) : localizedString("general.deed", language: selectedLanguage)) \(dailyGoal)  ·  \(localizedString("general.level", language: selectedLanguage)) \(dailyGoal)"
@@ -30,19 +38,25 @@ struct HomeView: View {
         }
     }
     
+    
+    
+    var shownMilestoneToday: Bool {
+        lastMilestoneDateString == todayString()
+    }
+    
     var focusDeeds: [WorshipType] {
         focusDeedsRaw
             .split(separator: ",")
             .compactMap { WorshipType(rawValue: String($0)) }
     }
-
+    
     var formattedDate: String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: selectedLanguage)
         formatter.dateFormat = "EEEE, d MMMM"
         return formatter.string(from: Date()).uppercased()
     }
-
+    
     var greetingText: String {
         let hour = Calendar.current.component(.hour, from: Date())
         let key: String
@@ -66,15 +80,15 @@ struct HomeView: View {
         formatter.dateFormat = "d MMMM yyyy"
         return formatter.string(from: Date()).uppercased()
     }
-
+    
     var body: some View {
         ZStack {
             Color(red: 0.12, green: 0.09, blue: 0.07)
                 .ignoresSafeArea()
-
+            
             IslamicPattern()
                 .ignoresSafeArea()
-
+            
             // Top header
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .top, spacing: 12) {
@@ -83,23 +97,23 @@ struct HomeView: View {
                             .font(.system(size: 11, weight: .medium))
                             .tracking(selectedLanguage == "ar" ? 0 : 2)
                             .foregroundColor(.white.opacity(0.3))
-
+                        
                         Text(formattedDate)
                             .font(.system(size: 11, weight: .medium))
                             .tracking(selectedLanguage == "ar" ? 0 : 2)
                             .foregroundColor(.white.opacity(0.5))
                             .textCase(.uppercase)
-
+                        
                         Text(greetingText)
                             .font(.system(size: 28, weight: .light))
                             .italic()
                             .foregroundColor(.white.opacity(0.9))
-
+                        
                         Text(levelText)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.9))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
                             .background(
                                 RoundedRectangle(cornerRadius: 6)
                                     .fill(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.12))
@@ -109,9 +123,9 @@ struct HomeView: View {
                                     )
                             )
                     }
-
+                    
                     Spacer()
-
+                    
                     // Right column — upgrade icon + mirror box stacked
                     VStack(alignment: .trailing, spacing: 8) {
                         if upgradeIconVisible {
@@ -123,11 +137,11 @@ struct HomeView: View {
                                     .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.8))
                             }
                         }
-
+                        
                         if let message = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
                             .mirrorMessage(focusDeeds: focusDeeds, language: selectedLanguage) {
                             MirrorBoxView(message: message)
-                                .frame(width: 130)
+                                .frame(width: 150)
                         }
                     }
                 }
@@ -137,7 +151,7 @@ struct HomeView: View {
             }
             .padding(.bottom, 100)
             .padding(.top, 20)
-
+            
             // Worship grid
             GeometryReader { geo in
                 ZStack(alignment: .bottom) {
@@ -153,7 +167,7 @@ struct HomeView: View {
                                 let logCount = engine.todayCountByWorship[worship.rawValue] ?? 0
                                 let isOverdue = engine.isOverdue(for: worship)
                                 let wasLoggedBefore = isLogged  // capture before tap
-
+                                
                                 WorshipCard(
                                     worship: worship,
                                     isLogged: isLogged,
@@ -163,18 +177,32 @@ struct HomeView: View {
                                     isFocused: focusDeeds.contains(worship)  // new
                                 ) {
                                     viewModel.log(worshipType: worship, context: context)
+
+                                        if !wasLoggedBefore {
+                                            let freshEngine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
+                                            postLogInsight = worship.randomInsight
+                                            postLogCount66 = freshEngine.countLast66Days(for: worship)
+
+                                            // wait for SwiftData to update allLogs
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                                let totalToday = viewModel.totalDeedsToday(logs: allLogs)
+                                                if totalToday == dailyGoal && !shownMilestoneToday {
+                                                    lastMilestoneDateString = todayString()
+                                                    pendingPostLogWorship = worship
+                                                    showDailyMilestone = true
+                                                } else {
+                                                    postLogWorship = worship
+                                                }
+                                            }
+                                        }
                                     
-                                    if !wasLoggedBefore {
-                                        let freshEngine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
-                                        postLogInsight = worship.randomInsight
-                                        postLogCount66 = freshEngine.countLast66Days(for: worship)
-                                        postLogWorship = worship
-                                    }
+                                    
+                                    
                                 }
                             }
                         }
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 100) 
+                        .padding(.bottom, 100)
                     }
                     .padding(.top, geo.size.height * 0.25)
                     
@@ -201,18 +229,56 @@ struct HomeView: View {
                     deedsToday: viewModel.totalDeedsToday(logs: allLogs),
                     selectedLanguage: selectedLanguage,
                     canUndo: viewModel.canUndo(logs: allLogs),
-                    onUndo: { viewModel.undoLastLog(logs: allLogs, context: context) }
+                    onUndo: {
+                        viewModel.undoLastLog(logs: allLogs, context: context)
+                        // if total drops below goal, allow milestone to show again
+                        let totalAfterUndo = viewModel.totalDeedsToday(logs: allLogs) - 1
+                        if totalAfterUndo < dailyGoal {
+                            lastMilestoneDateString = ""
+                        }
+                    }
                 )
                 .padding(.bottom, 100)
             }            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-            .ignoresSafeArea(edges: .bottom)
+                .ignoresSafeArea(edges: .bottom)
+        }.sheet(isPresented: $showDailyMilestone, onDismiss: {
+            if let pending = pendingPostLogWorship {
+                postLogWorship = pending
+                pendingPostLogWorship = nil
+            }
+        }) {
+            DailyMilestoneView(
+                dailyGoal: dailyGoal,
+                selectedLanguage: selectedLanguage,
+                rhythmPercent: viewModel.globalRhythm(logs: allLogs, dailyGoal: dailyGoal),  // add
+                onDismiss: { showDailyMilestone = false }
+            )
+            .presentationDetents([.fraction(0.75)])
         }
         .onAppear {
-               let has3Logs = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal).has3Logs
-               
-               if has3Logs && AppReviewManager.shouldRequestReview() {
-                   requestReview()
-               }
+            NotificationManager.requestPermission()
+            NotificationManager.cancelToday()
+            let has3Logs = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal).has3Logs
+            if has3Logs && AppReviewManager.shouldRequestReview() {
+                requestReview()
+            }
+        
+            let engine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
+            NotificationManager.scheduleAll(
+                engine: engine,
+                focusDeeds: focusDeeds,
+                smartNotificationsEnabled: smartNotificationsEnabled,
+                language: selectedLanguage 
+            )
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            let engine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
+            NotificationManager.scheduleAll(
+                engine: engine,
+                focusDeeds: focusDeeds,
+                smartNotificationsEnabled: smartNotificationsEnabled,
+                language: selectedLanguage 
+            )
         }
         .sheet(item: $postLogWorship) { worship in
             PostLogView(
@@ -235,132 +301,118 @@ struct HomeView: View {
                 upgradeIconVisible = true
                 showUpgradePopup = true
             }
-            print(viewModel.globalRhythm(logs: allLogs, dailyGoal: dailyGoal))
         }
         .environment(\.layoutDirection, AppLanguage(rawValue: selectedLanguage)?.layoutDirection ?? .leftToRight)
     }
-}
-
-
-
-struct WorshipCard: View {
-    let worship: WorshipType
-    let isLogged: Bool
-    let logCount: Int
-    let selectedLanguage: String
-    let isOverdue: Bool
-    let isFocused: Bool  // add this
-    let onTap: () -> Void
-
+    }
     
-    @State private var isPressed = false
-    @State private var isPulsing = false
     
-    var body: some View {
-        Button {
-            let haptic = UIImpactFeedbackGenerator(style: .medium)
-            haptic.prepare()
-            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
-                isPressed = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                    isPressed = false
+    
+    struct WorshipCard: View {
+        let worship: WorshipType
+        let isLogged: Bool
+        let logCount: Int
+        let selectedLanguage: String
+        let isOverdue: Bool
+        let isFocused: Bool  // add this
+        let onTap: () -> Void
+        
+        
+        @State private var isPressed = false
+        @State private var isPulsing = false
+        
+        var body: some View {
+            Button {
+                let haptic = UIImpactFeedbackGenerator(style: .medium)
+                haptic.prepare()
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                    isPressed = true
                 }
-            }
-            haptic.impactOccurred()
-            onTap()
-        } label: {
-            ZStack(alignment: .topTrailing) {
-                VStack(spacing: 6) {
-                    Image(systemName: worship.icon)
-                        .font(.system(size: 20, weight: .light))
-                        .foregroundColor(.white.opacity(isLogged ? 0.5 : 0.7))
-                    
-                    Text(worship.arabicName)
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(.white.opacity(isLogged ? 0.5 : 0.95))
-                    
-                    if selectedLanguage != "ar" {
-                        Text(LocalizedStringKey(worship.nameKey))
-                            .font(.system(size: 13, weight: .light))
-                            .italic()
-                            .foregroundColor(.white.opacity(isLogged ? 0.3 : 0.55))
-                            .environment(\.locale, Locale(identifier: selectedLanguage))
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                        isPressed = false
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            isLogged ?
-                            Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.15) :
-                            Color.white.opacity(0.05)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(
-                                    isLogged ?
-                                    Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.4) :
-                                    isFocused ?
-                                    Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.5) :
-                                    isOverdue ?
-                                    Color(red: 0.85, green: 0.72, blue: 0.52).opacity(isPulsing ? 0.4 : 0.15) :
-                                    Color.white.opacity(0.08),
-                                    lineWidth: isFocused ? 1.5 : isOverdue ? 1.0 : 0.5
-                                )
-                        )
-                )
-                .scaleEffect(isPressed ? 0.95 : 1.0)
-                .shadow(
-                    color: isLogged ?
+                haptic.impactOccurred()
+                onTap()
+            } label: {
+                ZStack(alignment: .topTrailing) {
+                    VStack(spacing: 6) {
+                        Image(systemName: worship.icon)
+                            .font(.system(size: 20, weight: .light))
+                            .foregroundColor(.white.opacity(isLogged ? 0.5 : 0.7))
+                        
+                        Text(worship.arabicName)
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(.white.opacity(isLogged ? 0.5 : 0.95))
+                        
+                        if selectedLanguage != "ar" {
+                            Text(LocalizedStringKey(worship.nameKey))
+                                .font(.system(size: 13, weight: .light))
+                                .italic()
+                                .foregroundColor(.white.opacity(isLogged ? 0.3 : 0.55))
+                                .environment(\.locale, Locale(identifier: selectedLanguage))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(
+                                isLogged ?
+                                Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.15) :
+                                    Color.white.opacity(0.05)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(
+                                        isLogged ?
+                                        Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.4) :
+                                            isFocused ?
+                                        Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.5) :
+                                            isOverdue ?
+                                        Color(red: 0.85, green: 0.72, blue: 0.52).opacity(isPulsing ? 0.4 : 0.15) :
+                                            Color.white.opacity(0.08),
+                                        lineWidth: isFocused ? 1.5 : isOverdue ? 1.0 : 0.5
+                                    )
+                            )
+                    )
+                    .scaleEffect(isPressed ? 0.95 : 1.0)
+                    .shadow(
+                        color: isLogged ?
                         Color(red: 0.85, green: 0.72, blue: 0.52).opacity(isPulsing ? 0.3 : 0.1) :
-                        Color.clear,
-                    radius: isPulsing ? 12 : 6
-                )
-                
-                if isLogged && logCount > 0 {
-                    Text("\(logCount)")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
-                        .frame(width: 18, height: 18)
-                        .background(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.8))
-                        .clipShape(Circle())
-                        .offset(x: -4, y: 4)
+                            Color.clear,
+                        radius: isPulsing ? 12 : 6
+                    )
+                    
+                    if isLogged && logCount > 0 {
+                        Text("\(logCount)")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.white.opacity(0.9))
+                            .frame(width: 18, height: 18)
+                            .background(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.8))
+                            .clipShape(Circle())
+                            .offset(x: -4, y: 4)
+                    }
+                    
                 }
-                // Overdue indicator
-//                if isOverdue && !isLogged {
-//                    Circle()
-//                        .fill(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.6))
-//                        .frame(width: 6, height: 6)
-//                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-//                        .padding(8)
-//                }
             }
-        }
-        .onAppear {
-            guard isLogged else { return }
-            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                isPulsing = true
-            }
-        }
-        .onChange(of: isLogged) { _, logged in
-            if logged {
+            .onAppear {
+                guard isLogged else { return }
                 withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
                     isPulsing = true
                 }
-            } else {
-                isPulsing = false
+            }
+            .onChange(of: isLogged) { _, logged in
+                if logged {
+                    withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                        isPulsing = true
+                    }
+                } else {
+                    isPulsing = false
+                }
             }
         }
     }
-}
-//#Preview {
-//    let container = try! ModelContainer(
-//        for: DeedLog.self,
-//        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-//    )
-//    return HomeView()
-//        .modelContainer(container)
-//}
+    
+    

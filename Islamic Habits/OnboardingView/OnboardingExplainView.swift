@@ -3,6 +3,7 @@ import SwiftUI
 struct OnboardingExplainView: View {
     
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
+    @AppStorage("hasSeenFocusOnboarding") private var hasSeenFocusOnboarding: Bool = false  // add
     @AppStorage("selectedLanguage") private var selectedLanguage: String = AppLanguage.english.rawValue
     @State private var currentPage = 0
     
@@ -10,16 +11,16 @@ struct OnboardingExplainView: View {
         ZStack {
             Color(red: 0.12, green: 0.09, blue: 0.07)
                 .ignoresSafeArea()
-            
+
             IslamicPattern()
                 .ignoresSafeArea()
                 .opacity(0.4)
-            
+
             VStack(spacing: 0) {
-                
+
                 // Page dots
                 HStack(spacing: 8) {
-                    ForEach(0..<3) { i in
+                    ForEach(0..<5) { i in
                         Circle()
                             .fill(currentPage == i ?
                                 Color(red: 0.85, green: 0.72, blue: 0.52) :
@@ -29,33 +30,35 @@ struct OnboardingExplainView: View {
                     }
                 }
                 .padding(.top, 60)
-                
+
                 Spacer()
-                
-                // Pages
+
                 TabView(selection: $currentPage) {
                     page1.tag(0)
                     page2.tag(1)
                     page3.tag(2)
+                    page4.tag(3)
+                    page5.tag(4)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.easeInOut, value: currentPage)
-                
+
                 Spacer()
-                
-                // Button
+
                 Button {
-                    if currentPage < 2 {
+                    if currentPage < 4 {
                         withAnimation(.easeInOut(duration: 0.4)) {
                             currentPage += 1
                         }
                     } else {
+                        NotificationManager.requestPermission()
                         hasCompletedOnboarding = true
+                        hasSeenFocusOnboarding = true
                     }
                 } label: {
-                    Text(currentPage < 2 ?
-                         localizedString("Continue", language: selectedLanguage) :
-                         localizedString("Begin", language: selectedLanguage)
+                    Text(currentPage < 4 ?
+                        localizedString("Continue", language: selectedLanguage) :
+                        localizedString("Begin", language: selectedLanguage)
                     )
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(Color(red: 0.12, green: 0.09, blue: 0.07))
@@ -69,6 +72,7 @@ struct OnboardingExplainView: View {
             }
         }
     }
+    
     
     // MARK: - Page 1: What is Mirror
     var page1: some View {
@@ -180,6 +184,80 @@ struct OnboardingExplainView: View {
         .padding(.horizontal, 24)
     }
     
+    // MARK: - Page 4: Focus Deeds
+    var page4: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "scope")
+                .font(.system(size: 48, weight: .thin))
+                .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.8))
+
+            VStack(spacing: 12) {
+                Text(localizedString("onboard.focus.title", language: selectedLanguage))
+                    .font(.system(size: 22, weight: .light))
+                    .italic()
+                    .foregroundColor(.white.opacity(0.9))
+
+                Text(localizedString("onboard.focus.subtitle", language: selectedLanguage))
+
+                    .font(.system(size: 14, weight: .light))
+                    .foregroundColor(.white.opacity(0.45))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(6)
+                    .padding(.horizontal, 32)
+            }
+
+            FocusDeedPickerEmbedded()
+                .frame(height: 320)
+
+        }
+        .padding(.horizontal, 24)
+    }
+
+    // MARK: - Page 5: Smart Notifications
+    var page5: some View {
+        VStack(spacing: 32) {
+            Image(systemName: "bell.badge")
+                .font(.system(size: 48, weight: .thin))
+                .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.8))
+
+            VStack(spacing: 12) {
+                Text(localizedString("onboard.notif.title", language: selectedLanguage))
+                    .font(.system(size: 22, weight: .light))
+                    .italic()
+                    .foregroundColor(.white.opacity(0.9))
+
+                Text(localizedString("onboard.notif.subtitle", language: selectedLanguage))
+
+                    .font(.system(size: 14, weight: .light))
+                    .foregroundColor(.white.opacity(0.45))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(6)
+                    .padding(.horizontal, 32)
+            }
+
+            VStack(spacing: 12) {
+                notifRow(icon: "clock", text: localizedString("onboard.notif.row1", language: selectedLanguage))
+                notifRow(icon: "checkmark.circle", text: localizedString("onboard.notif.row2", language: selectedLanguage))
+                notifRow(icon: "scope", text: localizedString("onboard.notif.row3", language: selectedLanguage))
+            }
+            .padding(.horizontal, 32)
+        }
+        .padding(.horizontal, 24)
+    }
+
+    func notifRow(icon: String, text: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .light))
+                .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.7))
+                .frame(width: 20)
+            Text(text)
+                .font(.system(size: 14, weight: .light))
+                .foregroundColor(.white.opacity(0.6))
+            Spacer()
+        }
+    }
+    
     // MARK: - Helpers
     func miniCard(icon: String, opacity: Double) -> some View {
         RoundedRectangle(cornerRadius: 12)
@@ -207,4 +285,5 @@ struct OnboardingExplainView: View {
                 .foregroundColor(.white.opacity(0.6))
         }
     }
+
 }

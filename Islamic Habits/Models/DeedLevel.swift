@@ -53,6 +53,29 @@ enum DeedLevel: Int, CaseIterable {
         case .tabiah:     return "66+ days"
         }
     }
+    
+    func streakRange(language: String) -> String {
+        switch language {
+        case "ar":
+            switch self {
+            case .niyyah:    return "١–١٤ يوم"
+            case .muraqabah: return "١٥–٣٥ يوم"
+            case .istiqamah: return "٣٦–٥٥ يوم"
+            case .aadah:     return "٥٦–٦٦ يوم"
+            case .tabiah:    return "٦٦+ يوم"
+            }
+        case "th":
+            switch self {
+            case .niyyah:    return "1–14 วัน"
+            case .muraqabah: return "15–35 วัน"
+            case .istiqamah: return "36–55 วัน"
+            case .aadah:     return "56–66 วัน"
+            case .tabiah:    return "66+ วัน"
+            }
+        default:
+            return streakRange
+        }
+    }
 
     static func from(streak: Int) -> DeedLevel {
         switch streak {
@@ -90,6 +113,42 @@ enum DeedLevel: Int, CaseIterable {
         case .istiqamah: return 2
         case .aadah:     return 4
         case .tabiah:    return 4
+        }
+    }
+    
+    func gracePeriods(for worshipType: WorshipType) -> Int {
+        switch worshipType.cadence {
+        case "daily":
+            // grace in days
+            return graceDays
+        case "weekly":
+            // more forgiving — life happens week to week
+            switch self {
+            case .niyyah:    return 0
+            case .muraqabah: return 1
+            case .istiqamah: return 1
+            case .aadah:     return 2
+            case .tabiah:    return 2
+            }
+        case "monthly":
+            // very forgiving — missing one month is ok at higher levels
+            switch self {
+            case .niyyah:    return 0
+            case .muraqabah: return 1
+            case .istiqamah: return 1
+            case .aadah:     return 1
+            case .tabiah:    return 2
+            }
+        default:
+            return graceDays
+        }
+    }
+    
+    func localizedName(language: String) -> String {
+        switch language {
+        case "ar": return arabicName
+        case "th": return thaiName
+        default:   return englishName
         }
     }
 }

@@ -29,13 +29,9 @@ struct FocusDeedProgressCard: View {
     }
 
     var levelName: String {
-        switch selectedLanguage {
-        case "ar": return level.arabicName
-        case "th": return level.thaiName
-        default: return level.englishName
-        }
+        level.localizedName(language: selectedLanguage)
     }
-
+    
     var statusColor: Color {
         switch status {
         case .healthy: return gold
@@ -47,13 +43,14 @@ struct FocusDeedProgressCard: View {
     var statusText: String {
         switch status {
         case .healthy:
-            return "\(streak) day streak"
+            return "\(streak) \(localizedString("focus.streak.healthy", language: selectedLanguage))"
         case .warning(let remaining):
-            return "\(remaining) grace day\(remaining == 1 ? "" : "s") left"
+            return "\(remaining) \(localizedString("focus.grace.left", language: selectedLanguage))"
         case .broken:
-            return "Streak broken — keep going"
+            return localizedString("focus.streak.broken", language: selectedLanguage)
         }
     }
+
 
     var body: some View {
         VStack(spacing: 16) {
@@ -79,7 +76,7 @@ struct FocusDeedProgressCard: View {
                 Spacer()
 
                 // Level badge
-                Text("Lvl \(level.rawValue)")
+                Text("\(localizedString("general.level", language: selectedLanguage)) \(level.rawValue)")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(background)
                     .padding(.horizontal, 10)
@@ -118,7 +115,7 @@ struct FocusDeedProgressCard: View {
 
                     Spacer()
 
-                    Text(level.streakRange)
+                    Text(level.streakRange(language: selectedLanguage))
                         .font(.system(size: 11))
                         .foregroundColor(.white.opacity(0.3))
                 }
