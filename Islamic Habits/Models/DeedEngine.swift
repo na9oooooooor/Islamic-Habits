@@ -358,4 +358,38 @@ struct DeedEngine {
         let hours = recentLogs.map { calendar.component(.hour, from: $0.loggedAt) }
         return hours.reduce(0, +) / hours.count
     }
+    
+    func calculateAyahsRead(
+        surahFromNumber: Int,
+        ayahFrom: Int,
+        surahToNumber: Int,
+        ayahTo: Int
+    ) -> Int {
+        let surahs = QuranData.surahs
+
+        // Guard: from must come before to
+        guard surahFromNumber <= surahToNumber else { return 0 }
+
+        // Case 1: same surah
+        if surahFromNumber == surahToNumber {
+            return max(0, ayahTo - ayahFrom + 1)
+        }
+
+        // Case 2: multiple surahs
+        var total = 0
+
+        for surahNumber in surahFromNumber...surahToNumber {
+            guard let surah = surahs.first(where: { $0.number == surahNumber }) else { continue }
+
+            if surahNumber == surahFromNumber {
+                total += surah.ayahs - ayahFrom + 1
+            } else if surahNumber == surahToNumber {
+                total += ayahTo
+            } else {
+                total += surah.ayahs
+            }
+        }
+
+        return total
+    }
 }

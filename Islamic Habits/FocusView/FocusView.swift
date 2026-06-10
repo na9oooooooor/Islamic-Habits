@@ -125,5 +125,5 @@ struct FocusView: View {
 }
 #Preview {
     FocusView()
-        .modelContainer(for: DeedLog.self, inMemory: true)
+        .modelContainer(for: [DeedLog.self, QuranLog.self])
 }

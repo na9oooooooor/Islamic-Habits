@@ -2811,20 +2811,20 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "من عادة راسخة قيد البناء. واصل الحضور."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "% of a lasting habit built. Keep showing up."
+            "value" : "of a lasting habit built. Keep showing up."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "% ของนิสัยที่สร้างขึ้น ยังคงมาต่อไป"
+            "value" : "ของนิสัยที่สร้างขึ้น ยังคงมาต่อไป"
           }
         }
       }
@@ -2834,20 +2834,20 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "من طريق ترسيخ العادة. الله يرى كل جهد."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "% toward a real habit. Allah sees every effort."
+            "value" : "toward a real habit. Allah sees every effort."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "% สู่นิสัยที่แท้จริง อัลลอฮ์ทรงเห็นทุกความพยายาม"
+            "value" : "สู่นิสัยที่แท้จริง อัลลอฮ์ทรงเห็นทุกความพยายาม"
           }
         }
       }
