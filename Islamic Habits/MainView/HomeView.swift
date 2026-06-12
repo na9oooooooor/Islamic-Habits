@@ -13,22 +13,27 @@ struct HomeView: View {
     @AppStorage("selectedLanguage") private var selectedLanguage: String = AppLanguage.english.rawValue
     @AppStorage("hasSeenTierPopup") var hasSeenTierPopup: Bool = false
     @AppStorage("upgradeIconVisible") var upgradeIconVisible: Bool = false
-    @State private var showLanguagePicker = false
-    @State private var showUpgradePopup: Bool = false
     @Environment(\.requestReview) var requestReview
-    @State private var postLogWorship: WorshipType? = nil
-    @State private var postLogInsight: String = ""
-    @State private var postLogCount66: Int = 0
     @AppStorage("focusDeeds") var focusDeedsRaw: String = ""
     @AppStorage("smartNotifications") var smartNotificationsEnabled: Bool = true
     @AppStorage("lastMilestoneDate") var lastMilestoneDateString: String = ""
-    
     @State private var showDailyMilestone = false
     @State private var pendingPostLogWorship: WorshipType? = nil
-
+    @State private var selectedSurahFrom: Surah = QuranData.surahs[0]
+    @State private var selectedAyahFrom: Int = 1
+    @State private var selectedSurahTo: Surah = QuranData.surahs[0]
+    @State private var selectedAyahTo: Int = 1
+    @State private var postLogWorship: WorshipType? = nil
+    @State private var postLogInsight: String = ""
+    @State private var postLogCount66: Int = 0
+    @State private var showLanguagePicker = false
+    @State private var showUpgradePopup: Bool = false
+    @State private var showQuranSheet = false
     
     
-    
+    var engine: DeedEngine {
+        viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
+    }
     
     var levelText: String {
         if selectedLanguage == "ar" {
@@ -79,6 +84,15 @@ struct HomeView: View {
         formatter.calendar = Calendar(identifier: .islamicUmmAlQura)
         formatter.dateFormat = "d MMMM yyyy"
         return formatter.string(from: Date()).uppercased()
+    }
+    
+    var ayahsRead: Int {
+        engine.calculateAyahsRead(
+            surahFromNumber: selectedSurahFrom.number,
+            ayahFrom: selectedAyahFrom,
+            surahToNumber: selectedSurahTo.number,
+            ayahTo: selectedAyahTo
+        )
     }
     
     var body: some View {
@@ -138,7 +152,7 @@ struct HomeView: View {
                             }
                         }
                         
-                        if let message = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
+                        if let message = engine
                             .mirrorMessage(focusDeeds: focusDeeds, language: selectedLanguage) {
                             MirrorBoxView(message: message)
                                 .frame(width: 150)
@@ -162,7 +176,7 @@ struct HomeView: View {
                             GridItem(.flexible())
                         ], spacing: 12) {
                             ForEach(WorshipType.allCases, id: \.self) { worship in
-                                let engine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
+                            
                                 let isLogged = engine.loggedTodayByWorship[worship.rawValue] ?? false
                                 let logCount = engine.todayCountByWorship[worship.rawValue] ?? 0
                                 let isOverdue = engine.isOverdue(for: worship)
@@ -178,8 +192,11 @@ struct HomeView: View {
                                 ) {
                                     viewModel.log(worshipType: worship, context: context)
 
+                                    if worship == .quran && focusDeeds.contains(.quran) {
+                                        showQuranSheet = true
+                                    }
                                         if !wasLoggedBefore {
-                                            let freshEngine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
+                                            let freshEngine = engine
                                             postLogInsight = worship.randomInsight
                                             postLogCount66 = freshEngine.countLast66Days(for: worship)
 
@@ -241,7 +258,9 @@ struct HomeView: View {
                 .padding(.bottom, 100)
             }            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                 .ignoresSafeArea(edges: .bottom)
-        }.sheet(isPresented: $showDailyMilestone, onDismiss: {
+        }
+        
+        .sheet(isPresented: $showDailyMilestone, onDismiss: {
             if let pending = pendingPostLogWorship {
                 postLogWorship = pending
                 pendingPostLogWorship = nil
@@ -258,12 +277,12 @@ struct HomeView: View {
         .onAppear {
             NotificationManager.requestPermission()
             NotificationManager.cancelToday()
-            let has3Logs = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal).has3Logs
+            let has3Logs = engine.has3Logs
             if has3Logs && AppReviewManager.shouldRequestReview() {
                 requestReview()
             }
         
-            let engine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
+           
             NotificationManager.scheduleAll(
                 engine: engine,
                 focusDeeds: focusDeeds,
@@ -272,7 +291,7 @@ struct HomeView: View {
             )
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-            let engine = viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
+            
             NotificationManager.scheduleAll(
                 engine: engine,
                 focusDeeds: focusDeeds,
@@ -301,6 +320,14 @@ struct HomeView: View {
                 upgradeIconVisible = true
                 showUpgradePopup = true
             }
+        }
+        .sheet(isPresented: $showQuranSheet) {
+            QuranLogSheet(
+                selectedLanguage: selectedLanguage,
+                onSave: {
+                }
+            )
+            .presentationDetents([.fraction(0.75)])
         }
         .environment(\.layoutDirection, AppLanguage(rawValue: selectedLanguage)?.layoutDirection ?? .leftToRight)
     }
