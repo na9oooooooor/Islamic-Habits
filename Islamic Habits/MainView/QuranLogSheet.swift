@@ -43,85 +43,144 @@ struct QuranLogSheet: View {
         ZStack {
             bg.ignoresSafeArea()
 
-            VStack(spacing: 24) {
+            VStack(spacing: 0) {
+
+                // Handle
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(gold.opacity(0.3))
+                    .frame(width: 36, height: 4)
+                    .padding(.top, 12)
+
+                // Focus deed badge
+                HStack(spacing: 6) {
+                    Image(systemName: "scope")
+                        .font(.system(size: 11))
+                        .foregroundColor(gold)
+                    Text(localizedString("quran.sheet.focus.badge", language: selectedLanguage))
+                        .font(.system(size: 12))
+                        .foregroundColor(gold)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 5)
+                .background(
+                    Capsule()
+                        .fill(gold.opacity(0.12))
+                        .overlay(Capsule().stroke(gold.opacity(0.3), lineWidth: 0.5))
+                )
+                .padding(.top, 16)
 
                 // Title
-                Text("القرآن الكريم")
-                    .font(.system(size: 24, weight: .light))
-                    .foregroundColor(gold)
-                    .padding(.top, 24)
-
-                // Live ayahs count
-                Text("\(ayahsRead)")
-                    .font(.system(size: 52, weight: .thin))
-                    .foregroundColor(gold)
-
-                Text("ayahs")
-                    .font(.system(size: 13, weight: .light))
-                    .foregroundColor(.white.opacity(0.4))
-
-                Divider()
-                    .background(Color.white.opacity(0.08))
-
-                // FROM pickers
-                HStack(spacing: 0) {
-                    Picker("", selection: $selectedSurahFrom) {
-                        ForEach(QuranData.surahs) { surah in
-                            Text(surah.localizedName(language: selectedLanguage))
-                                .tag(surah)
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .frame(maxWidth: .infinity)
-
-                    // Ayah picker
-                    Picker("", selection: $selectedAyahFrom) {
-                        ForEach(1...selectedSurahFrom.ayahs, id: \.self) { ayah in
-                            Text("\(ayah)").tag(ayah)
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .frame(width: 80)
+                VStack(spacing: 4) {
+                    Text(localizedString("quran.sheet.title", language: selectedLanguage))               .font(.system(size: 22, weight: .light))
+                        .foregroundColor(gold)
+                    Text(localizedString("quran.sheet.subtitle", language: selectedLanguage))
+                        .font(.system(size: 10, weight: .medium))
+                        .tracking(1.5)
+                        .foregroundColor(.white.opacity(0.3))
                 }
+                .padding(.top, 16)
 
-                Divider()
-                    .background(Color.white.opacity(0.08))
-
-                // TO pickers
-                HStack(spacing: 0) {
-                    Picker("", selection: $selectedSurahTo) {
-                        ForEach(QuranData.surahs.filter { $0.number >= selectedSurahFrom.number }) { surah in
-                            Text(surah.localizedName(language: selectedLanguage))
-                                .tag(surah)
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .frame(maxWidth: .infinity)
-
-                    Picker("", selection: $selectedAyahTo) {
-                        let minAyah = selectedSurahTo.number == selectedSurahFrom.number ? selectedAyahFrom : 1
-                        ForEach(minAyah...selectedSurahTo.ayahs, id: \.self) { ayah in
-                            Text("\(ayah)").tag(ayah)
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .frame(width: 80)
+                // Ayahs count
+                VStack(spacing: 4) {
+                    Text("\(ayahsRead)")
+                        .font(.system(size: 56, weight: .ultraLight))
+                        .foregroundColor(gold)
+                    Text(localizedString("quran.sheet.ayahs.read", language: selectedLanguage))
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.3))
                 }
+                .padding(.vertical, 20)
 
-                // Save button
-                Button {
-                    saveLog()
-                } label: {
-                    Text("بارك الله فيك")
-                        .font(.system(size: 16, weight: .medium))
+                Divider().background(gold.opacity(0.15)).padding(.horizontal, 24)
+
+                // FROM
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(localizedString("quran.sheet.from", language: selectedLanguage))
+                        .font(.system(size: 10, weight: .medium))
+                        .tracking(1.5)
+                        .foregroundColor(gold.opacity(0.5))
+
+                    HStack(spacing: 10) {
+                        Picker("", selection: $selectedSurahFrom) {
+                            ForEach(QuranData.surahs) { surah in
+                                Text(surah.localizedName(language: selectedLanguage)).tag(surah)
+                                    .foregroundColor(.white)
+                                    .tag(surah)
+                            }
+                        }
+                        .colorScheme(.dark)
+                        .pickerStyle(.wheel)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 100)
+                        .clipped()
+
+                        Picker("", selection: $selectedAyahFrom) {
+                            ForEach(1...selectedSurahFrom.ayahs, id: \.self) { ayah in
+                                Text("\(ayah)").tag(ayah)
+                            }
+                        }
+                        .colorScheme(.dark)
+                        .pickerStyle(.wheel)
+                        .frame(width: 72)
+                        .frame(height: 100)
+                        .clipped()
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+
+                // TO
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(localizedString("quran.sheet.to", language: selectedLanguage))
+                        .font(.system(size: 10, weight: .medium))
+                        .tracking(1.5)
+                        .foregroundColor(gold.opacity(0.5))
+
+                    HStack(spacing: 10) {
+                        Picker("", selection: $selectedSurahTo) {
+                            ForEach(QuranData.surahs.filter { $0.number >= selectedSurahFrom.number }) { surah in
+                                Text(surah.localizedName(language: selectedLanguage)).tag(surah)
+                                    .foregroundColor(.white)
+                                    .tag(surah)
+                            }
+                        }
+                        .colorScheme(.dark)
+                        .pickerStyle(.wheel)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 100)
+                        .clipped()
+
+                        Picker("", selection: $selectedAyahTo) {
+                            let minAyah = selectedSurahTo.number == selectedSurahFrom.number ? selectedAyahFrom : 1
+                            ForEach(minAyah...selectedSurahTo.ayahs, id: \.self) { ayah in
+                                Text("\(ayah)").tag(ayah)
+                            }
+                        }
+                        .colorScheme(.dark)
+                        .pickerStyle(.wheel)
+                        .frame(width: 72)
+                        .frame(height: 100)
+                        .clipped()
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 16)
+
+                Divider().background(gold.opacity(0.15)).padding(.horizontal, 24)
+
+                // Save
+                Button { saveLog() } label: {
+                    Text(localizedString("postlog.dismiss", language: selectedLanguage))                        .font(.system(size: 16, weight: .medium))
                         .foregroundColor(bg)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(gold)
                         .cornerRadius(14)
-                        .padding(.horizontal, 24)
                 }
-                .padding(.bottom, 24)
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 28)
             }
         }
     }
