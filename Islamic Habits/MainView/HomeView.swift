@@ -324,10 +324,8 @@ struct HomeView: View {
         .sheet(isPresented: $showQuranSheet) {
             QuranLogSheet(
                 selectedLanguage: selectedLanguage,
-                onSave: {
-                }
+                onSave: {}
             )
-            .presentationDetents([.fraction(0.75)])
         }
         .environment(\.layoutDirection, AppLanguage(rawValue: selectedLanguage)?.layoutDirection ?? .leftToRight)
     }

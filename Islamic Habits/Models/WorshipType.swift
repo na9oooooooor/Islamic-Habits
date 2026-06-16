@@ -137,6 +137,13 @@ enum WorshipType: String, CaseIterable {
     var randomInsight: String {
         insights.randomElement() ?? insights[0]
     }
+    
+    func localizedName(language: String) -> String {
+        switch language {
+        case "ar": return arabicName
+        default: return localizedString(nameKey, language: language)
+        }
+    }
 }
 
 extension WorshipType: Identifiable {

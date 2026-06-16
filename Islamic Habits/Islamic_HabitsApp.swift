@@ -10,7 +10,7 @@ struct Islamic_HabitsApp: App {
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            DeedLog.self,
+            DeedLog.self,QuranLog.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

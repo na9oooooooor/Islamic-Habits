@@ -35,6 +35,7 @@ struct QuranLogSheet: View {
             ayahsRead: ayahsRead
         )
         context.insert(log)
+        
         onSave()
         dismiss()
     }
@@ -170,7 +171,8 @@ struct QuranLogSheet: View {
                 Divider().background(gold.opacity(0.15)).padding(.horizontal, 24)
 
                 // Save
-                Button { saveLog() } label: {
+                Button { saveLog()
+                } label: {
                     Text(localizedString("postlog.dismiss", language: selectedLanguage))                        .font(.system(size: 16, weight: .medium))
                         .foregroundColor(bg)
                         .frame(maxWidth: .infinity)
