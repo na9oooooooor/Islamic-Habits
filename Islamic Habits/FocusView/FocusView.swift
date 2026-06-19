@@ -176,7 +176,7 @@ struct FocusView: View {
 
                     // Label
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(level.localizedName(language: selectedLanguage))
+                        Text(level.arabicName)
                             .font(.system(size: isActive ? 12 : 10, weight: isActive ? .semibold : .regular))
                             .foregroundColor(
                                 isActive ? gold :

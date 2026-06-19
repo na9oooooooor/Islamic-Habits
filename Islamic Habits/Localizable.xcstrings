@@ -710,7 +710,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "الأعمال المحورية"
+            "value" : "الأعمال المركزه"
           }
         },
         "en" : {
@@ -2994,7 +2994,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "اختر عملاً محورياً لتبني عادة حقيقية."
+            "value" : "اختر عملاً مركزا لتبني عادة حقيقية."
           }
         },
         "en" : {
@@ -3088,7 +3088,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "الأعمال المحورية"
+            "value" : "الأعمال المركزه"
           }
         },
         "en" : {
@@ -3203,7 +3203,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تذكير واحد لكل عمل محوري"
+            "value" : "تذكير واحد لكل عمل مركز"
           }
         },
         "en" : {
@@ -3641,7 +3641,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "عمل محوري"
+            "value" : "عمل مركز"
           }
         },
         "en" : {

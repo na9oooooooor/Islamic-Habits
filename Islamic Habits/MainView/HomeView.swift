@@ -95,6 +95,24 @@ struct HomeView: View {
         )
     }
     
+    func showPostLog(for worship: WorshipType, wasLoggedBefore: Bool) {
+        guard !wasLoggedBefore else { return }
+        let freshEngine = engine
+        postLogInsight = worship.randomInsight
+        postLogCount66 = freshEngine.countLast66Days(for: worship)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            let totalToday = viewModel.totalDeedsToday(logs: allLogs)
+            if totalToday == dailyGoal && !shownMilestoneToday {
+                lastMilestoneDateString = todayString()
+                pendingPostLogWorship = worship
+                showDailyMilestone = true
+            } else {
+                postLogWorship = worship
+            }
+        }
+    }
+    
     var body: some View {
         ZStack {
             Color(red: 0.12, green: 0.09, blue: 0.07)
@@ -194,24 +212,9 @@ struct HomeView: View {
 
                                     if worship == .quran && focusDeeds.contains(.quran) {
                                         showQuranSheet = true
+                                    } else {
+                                        showPostLog(for: worship, wasLoggedBefore: wasLoggedBefore)
                                     }
-                                        if !wasLoggedBefore {
-                                            let freshEngine = engine
-                                            postLogInsight = worship.randomInsight
-                                            postLogCount66 = freshEngine.countLast66Days(for: worship)
-
-                                            // wait for SwiftData to update allLogs
-                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                                let totalToday = viewModel.totalDeedsToday(logs: allLogs)
-                                                if totalToday == dailyGoal && !shownMilestoneToday {
-                                                    lastMilestoneDateString = todayString()
-                                                    pendingPostLogWorship = worship
-                                                    showDailyMilestone = true
-                                                } else {
-                                                    postLogWorship = worship
-                                                }
-                                            }
-                                        }
                                     
                                     
                                     
@@ -321,7 +324,9 @@ struct HomeView: View {
                 showUpgradePopup = true
             }
         }
-        .sheet(isPresented: $showQuranSheet) {
+        .sheet(isPresented: $showQuranSheet, onDismiss: {
+            showPostLog(for: .quran, wasLoggedBefore: false)
+        }) {
             QuranLogSheet(
                 selectedLanguage: selectedLanguage,
                 onSave: {}
@@ -339,7 +344,7 @@ struct HomeView: View {
         let logCount: Int
         let selectedLanguage: String
         let isOverdue: Bool
-        let isFocused: Bool  // add this
+        let isFocused: Bool
         let onTap: () -> Void
         
         
