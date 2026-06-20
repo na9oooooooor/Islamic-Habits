@@ -9,6 +9,7 @@ struct HomeView: View {
     private let viewModel = HomeViewModel()
     @Environment(\.modelContext) private var context
     @Query private var allLogs: [DeedLog]
+    @Query private var rhythmStates: [GlobalRhythmState]
     @AppStorage("dailyGoal") private var dailyGoal: Int = 1
     @AppStorage("selectedLanguage") private var selectedLanguage: String = AppLanguage.english.rawValue
     @AppStorage("hasSeenTierPopup") var hasSeenTierPopup: Bool = false
@@ -278,6 +279,7 @@ struct HomeView: View {
             .presentationDetents([.fraction(0.75)])
         }
         .onAppear {
+            ensureGlobalRhythmStateExists(states: rhythmStates, context: context)
             NotificationManager.requestPermission()
             NotificationManager.cancelToday()
             let has3Logs = engine.has3Logs

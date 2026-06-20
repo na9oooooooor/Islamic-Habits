@@ -116,33 +116,6 @@ enum DeedLevel: Int, CaseIterable {
         }
     }
     
-    func gracePeriods(for worshipType: WorshipType) -> Int {
-        switch worshipType.cadence {
-        case "daily":
-            // grace in days
-            return graceDays
-        case "weekly":
-            // more forgiving — life happens week to week
-            switch self {
-            case .niyyah:    return 0
-            case .muraqabah: return 1
-            case .istiqamah: return 1
-            case .aadah:     return 2
-            case .tabiah:    return 2
-            }
-        case "monthly":
-            // very forgiving — missing one month is ok at higher levels
-            switch self {
-            case .niyyah:    return 0
-            case .muraqabah: return 1
-            case .istiqamah: return 1
-            case .aadah:     return 1
-            case .tabiah:    return 2
-            }
-        default:
-            return graceDays
-        }
-    }
     
     func localizedName(language: String) -> String {
         switch language {

@@ -8,7 +8,7 @@ class QuranLog {
     var ayahFrom: Int
     var surahToNumber: Int
     var ayahTo: Int
-    var ayahsRead: Int      // calculated and stored
+    var ayahsRead: Int      
 
 
     init(

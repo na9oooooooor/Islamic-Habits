@@ -9,21 +9,7 @@ struct DeedEngine {
         logs.filter { $0.loggedAt >= startOfIslamicDay && $0.loggedAt < startOfIslamicTomorrow }
     }
     
-    var loggedTodayByWorship: [String: Bool] {
-        var result: [String: Bool] = [:]
-        for worship in WorshipType.allCases {
-            result[worship.rawValue] = todayLogs.contains { $0.worshipType == worship.rawValue }
-        }
-        return result
-    }
     
-    var todayCountByWorship: [String: Int] {
-        var result: [String: Int] = [:]
-        for worship in WorshipType.allCases {
-            result[worship.rawValue] = todayLogs.filter { $0.worshipType == worship.rawValue }.count
-        }
-        return result
-    }
     
     // MARK: - Rhythm
     var rhythmLast66Days: Int {
@@ -36,6 +22,11 @@ struct DeedEngine {
     }
     
     // MARK: - Commitment
+    
+    var globalLevel: DeedLevel {
+        DeedLevel.from(streak: globalStreak)
+    }
+    
     var readyForNextCommitment: Bool {
         rhythmLast66Days >= 70
     }
@@ -75,33 +66,37 @@ struct DeedEngine {
     }
     // MARK: - Streak & Level
 
-    func rawStreak(for worshipType: WorshipType) -> Int {
+    func globalEffectiveStreak(state: GlobalRhythmState) -> Int {
         let calendar = Calendar.current
-        let unit = worshipType.streakUnit
+        let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        let graceDays = level.graceDays
         var periodStart = startOfIslamicDay
         var streak = 0
+        var consecutiveMisses = 0
 
         while true {
-            // Look back one period at a time
             let periodEnd = calendar.date(byAdding: .day, value: 1, to: periodStart)!
-            let windowStart = calendar.date(byAdding: .day, value: -(unit - 1), to: periodStart)!
+            let windowStart = periodStart
 
-            let hasLog = logs.contains {
-                $0.worshipType == worshipType.rawValue &&
+            let logCount = logs.filter {
                 $0.loggedAt >= windowStart &&
                 $0.loggedAt < periodEnd
+            }.count
+
+            if logCount >= dailyGoal {
+                streak += 1
+                consecutiveMisses = 0
+            } else {
+                consecutiveMisses += 1
+                if consecutiveMisses > graceDays { break }
             }
 
-            guard hasLog else { break }
-            streak += 1
-            periodStart = calendar.date(byAdding: .day, value: -unit, to: periodStart)!
+            periodStart = calendar.date(byAdding: .day, value: -1, to: periodStart)!
         }
         return streak
     }
 
-    func level(for worshipType: WorshipType) -> DeedLevel {
-        DeedLevel.from(streak: rawStreak(for: worshipType))
-    }
+
 
     func streak(for worshipType: WorshipType) -> Int {
         let calendar = Calendar.current
