@@ -14,6 +14,8 @@ enum DeedLevel: Int, CaseIterable {
     case aadah = 4         // days 56–66
     case tabiah = 5        // days 66+
 
+    static let rhythmDecayThreshold: Double = 5.0
+    
     var arabicName: String {
         switch self {
         case .niyyah:     return "نيّة"
@@ -87,7 +89,6 @@ enum DeedLevel: Int, CaseIterable {
         }
     }
 
-    // Progress within current level (0.0 to 1.0)
     var progressRange: ClosedRange<Int> {
         switch self {
         case .niyyah:    return 1...14
@@ -113,6 +114,16 @@ enum DeedLevel: Int, CaseIterable {
         case .istiqamah: return 2
         case .aadah:     return 4
         case .tabiah:    return 4
+        }
+    }
+    
+    var decayRate: Double {
+        switch self {
+        case .niyyah:    return 0.15
+        case .muraqabah: return 0.12
+        case .istiqamah: return 0.09
+        case .aadah:     return 0.06
+        case .tabiah:    return 0.04
         }
     }
     

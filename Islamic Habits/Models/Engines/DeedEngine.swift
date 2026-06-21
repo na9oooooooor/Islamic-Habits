@@ -23,9 +23,7 @@ struct DeedEngine {
     
     // MARK: - Commitment
     
-    var globalLevel: DeedLevel {
-        DeedLevel.from(streak: globalStreak)
-    }
+
     
     var readyForNextCommitment: Bool {
         rhythmLast66Days >= 70
@@ -49,21 +47,12 @@ struct DeedEngine {
         }.count+1
     }
     
-    func daysSinceLastLog(for worshipType: WorshipType) -> Int? {
-        let worshipLogs = logs.filter { $0.worshipType == worshipType.rawValue }
-        guard let lastLog = worshipLogs.max(by: { $0.loggedAt < $1.loggedAt }) else { return nil }
+    func globalDaysSinceLastLog() -> Int? {
+        guard let lastLog = logs.max(by: { $0.loggedAt < $1.loggedAt }) else { return nil }
         return Calendar.current.dateComponents([.day], from: lastLog.loggedAt, to: Date()).day
     }
 
-    func isOverdue(for worshipType: WorshipType) -> Bool {
-        guard let days = daysSinceLastLog(for: worshipType) else { return false }
-        switch worshipType.cadence {
-        case "daily": return days >= 3
-        case "weekly": return days >= 14
-        case "monthly": return days >= 60
-        default: return false
-        }
-    }
+
     // MARK: - Streak & Level
 
     func globalEffectiveStreak(state: GlobalRhythmState) -> Int {
@@ -96,91 +85,49 @@ struct DeedEngine {
         return streak
     }
 
-
-
-    func streak(for worshipType: WorshipType) -> Int {
-        let calendar = Calendar.current
-        let unit = worshipType.streakUnit
-        let graceDays = level(for: worshipType).graceDays
-        var periodStart = startOfIslamicDay
-        var streak = 0
-        var consecutiveMisses = 0
-
-        while true {
-            let periodEnd = calendar.date(byAdding: .day, value: 1, to: periodStart)!
-            let windowStart = calendar.date(byAdding: .day, value: -(unit - 1), to: periodStart)!
-
-            let hasLog = logs.contains {
-                $0.worshipType == worshipType.rawValue &&
-                $0.loggedAt >= windowStart &&
-                $0.loggedAt < periodEnd
-            }
-
-            if hasLog {
-                streak += 1
-                consecutiveMisses = 0
-            } else {
-                consecutiveMisses += 1
-                if consecutiveMisses > graceDays { break }
-            }
-
-            periodStart = calendar.date(byAdding: .day, value: -unit, to: periodStart)!
-        }
-        return streak
+    func globalBasePercentage(state: GlobalRhythmState) -> Double {
+        let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        let streak = globalEffectiveStreak(state: state)
+        return level.progress(streak: streak) * 100
     }
 
-    func graceDaysUsed(for worshipType: WorshipType) -> Int {
-        let calendar = Calendar.current
-        let unit = worshipType.streakUnit
-        var periodStart = startOfIslamicDay
-        var used = 0
-        let gracePeriods = level(for: worshipType).graceDays
 
-        while true {
-            let periodEnd = calendar.date(byAdding: .day, value: 1, to: periodStart)!
-            let windowStart = calendar.date(byAdding: .day, value: -(unit - 1), to: periodStart)!
 
-            let hasLog = logs.contains {
-                $0.worshipType == worshipType.rawValue &&
-                $0.loggedAt >= windowStart &&
-                $0.loggedAt < periodEnd
-            }
-
-            if hasLog { break }
-            used += 1
-            if used > gracePeriods { break }
-
-            periodStart = calendar.date(byAdding: .day, value: -unit, to: periodStart)!
-        }
-        return used
-    }
-
-    func graceDaysRemaining(for worshipType: WorshipType) -> Int {
-        let total = level(for: worshipType).graceDays
-        let used = graceDaysUsed(for: worshipType)
-        return max(0, total - used)
-    }
-
-    func streakStatus(for worshipType: WorshipType) -> StreakStatus {
-        let used = graceDaysUsed(for: worshipType)
-        let total = level(for: worshipType).graceDays
-        
-        if used == 0 { return .healthy }
-        if used <= total { return .warning(remaining: total - used) }
-        return .broken
+    func globalDaysPastGrace(state: GlobalRhythmState) -> Int {
+        guard let daysSince = globalDaysSinceLastLog() else { return 0 }
+        let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        let graceDays = level.graceDays
+        return max(0, daysSince - graceDays)
     }
     
-    func effectiveLevel(for worshipType: WorshipType) -> DeedLevel {
-        let currentLevel = level(for: worshipType)
-        
-        switch streakStatus(for: worshipType) {
-        case .healthy, .warning:
-            return currentLevel  // no drop yet
-        case .broken:
-            // drop one level down, floor at .niyyah
-            let droppedRaw = max(1, currentLevel.rawValue - 1)
-            return DeedLevel(rawValue: droppedRaw) ?? .niyyah
+    func globalDecayedPercentage(state: GlobalRhythmState) -> Double {
+        let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        let basePercentage = globalBasePercentage(state: state)
+        let daysPastGrace = globalDaysPastGrace(state: state)
+
+        guard daysPastGrace > 0 else { return basePercentage }
+
+        var result = basePercentage
+        for _ in 0..<daysPastGrace {
+            result -= result * level.decayRate
         }
+        return result
+    }
+    
+    func globalShouldDropLevel(state: GlobalRhythmState) -> Bool {
+        return globalDecayedPercentage(state: state) <= DeedLevel.rhythmDecayThreshold
+    }
+    
+    func droppedLevel(from level: DeedLevel) -> DeedLevel {
+        let newRaw = max(1, level.rawValue - 1)
+        return DeedLevel(rawValue: newRaw) ?? .niyyah
+    }
+    
+    func applyLevelDropIfNeeded(state: GlobalRhythmState) {
+        guard globalShouldDropLevel(state: state) else { return }
+        let currentLevel = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        let newLevel = droppedLevel(from: currentLevel)
+        state.currentLevel = newLevel.rawValue
     }
     
     func last66DaysLogged(for worshipType: WorshipType) -> [Date: Bool] {
