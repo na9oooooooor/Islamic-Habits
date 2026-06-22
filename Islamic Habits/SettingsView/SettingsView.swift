@@ -112,6 +112,8 @@ struct SettingsView: View {
                             Button(role: .destructive) {
                                 do {
                                     try modelContext.delete(model: DeedLog.self)
+                                    try modelContext.delete(model: QuranLog.self)
+                                    try modelContext.delete(model: GlobalRhythmState.self)
                                     try modelContext.save()
                                     dailyGoal = 1
                                     hasSeenTierPopup = false

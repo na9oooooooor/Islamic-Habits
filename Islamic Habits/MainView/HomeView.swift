@@ -25,6 +25,8 @@ struct HomeView: View {
     @State private var showRhythmAlert = false
     @State private var showToast = false
     @State private var toastMessage: MirrorMessage? = nil
+    @State private var showRhythmAlertIsLevelDrop: Bool = false
+
     
     
     var engine: DeedEngine {
@@ -92,9 +94,9 @@ struct HomeView: View {
 
         switch message.priority {
         case .alert:
-            // only once per day
             if lastRhythmAlertDate != todayString() {
                 lastRhythmAlertDate = todayString()
+                showRhythmAlertIsLevelDrop = engine.globalShouldDropLevel(state: state)
                 showRhythmAlert = true
             }
         case .progress:
@@ -268,17 +270,31 @@ struct HomeView: View {
             }
         }
         .sheet(isPresented: $showRhythmAlert) {
-            if let state = rhythmStates.first,
-               let message = engine.mirrorMessage(state: state, language: selectedLanguage) {
+            if let state = rhythmStates.first {
                 RhythmAlertSheet(
-                    message: message,
+                    state: state,
+                    isLevelDrop: showRhythmAlertIsLevelDrop,
                     selectedLanguage: selectedLanguage,
                     onDismiss: { showRhythmAlert = false }
                 )
-                .presentationDetents([.fraction(0.6)])
+                .presentationDetents([.fraction(0.75)])
             }
         }
+        
+        .onChange(of: allLogs.count) { _, _ in
+            guard let state = rhythmStates.first else { return }
+            let levelBefore = state.currentLevel
+            engine.applyLevelDropIfNeeded(state: state)
+            engine.applyLevelUpIfNeeded(state: state)
+            let levelAfter = state.currentLevel
 
+            if levelAfter > levelBefore,
+               let newLevel = DeedLevel(rawValue: levelAfter) {
+                newlyReachedLevel = newLevel
+                showLevelUp = true
+            }
+        }
+        
         .onAppear {
             ensureGlobalRhythmStateExists(states: rhythmStates, context: context)
 

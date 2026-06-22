@@ -13,59 +13,113 @@ struct LevelUpView: View {
             bg.ignoresSafeArea()
             IslamicPattern().ignoresSafeArea().opacity(0.4)
 
-            VStack(spacing: 32) {
+            VStack(spacing: 0) {
+
+                // Handle
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(gold.opacity(0.3))
+                    .frame(width: 36, height: 4)
+                    .padding(.top, 12)
+
                 Spacer()
 
-                // Orb
-                ZStack {
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [
-                                    Color(red: 0.98, green: 0.92, blue: 0.75),
-                                    Color(red: 0.82, green: 0.68, blue: 0.42),
-                                    Color(red: 0.50, green: 0.38, blue: 0.20),
-                                    Color(red: 0.28, green: 0.20, blue: 0.10)
-                                ],
-                                center: UnitPoint(x: 0.30, y: 0.20),
-                                startRadius: 0,
-                                endRadius: 60
-                            )
-                        )
-                        .frame(width: 120, height: 120)
-
-                    // Level name on the orb
-                    Text(newLevel.arabicName)
-                        .font(.system(size: 18, weight: .light))
-                        .foregroundColor(bg.opacity(0.8))
-                }
-
-                // Message
-                VStack(spacing: 12) {
+                // Header
+                VStack(spacing: 8) {
                     Text(newLevel.localizedName(language: selectedLanguage))
-                        .font(.system(size: 28, weight: .light))
+                        .font(.system(size: 32, weight: .light))
                         .italic()
                         .foregroundColor(gold)
 
                     Text(levelUpMessage)
-                        .font(.system(size: 15, weight: .light))
+                        .font(.system(size: 14, weight: .light))
                         .foregroundColor(.white.opacity(0.5))
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
-                        .padding(.horizontal, 32)
-
-                    // Hadith
-                    Text(localizedString("\"The most beloved deeds to Allah are the most consistent, even if small.\"", language: selectedLanguage))
-                        .font(.system(size: 13, weight: .light))
-                        .italic()
-                        .foregroundColor(gold.opacity(0.5))
-                        .multilineTextAlignment(.center)
                         .padding(.horizontal, 40)
-                        .padding(.top, 8)
                 }
 
                 Spacer()
 
+                // Level journey map
+                VStack(spacing: 0) {
+                    ForEach(Array(DeedLevel.allCases.enumerated()), id: \.offset) { index, level in
+                        let isReached = level.rawValue <= newLevel.rawValue
+                        let isCurrent = level.rawValue == newLevel.rawValue
+
+                        HStack(spacing: 16) {
+                            // Timeline
+                            VStack(spacing: 0) {
+                                if index > 0 {
+                                    Rectangle()
+                                        .fill(isReached ? gold.opacity(0.5) : gold.opacity(0.1))
+                                        .frame(width: 1, height: 20)
+                                }
+                                ZStack {
+                                    Circle()
+                                        .fill(isCurrent ? gold : (isReached ? gold.opacity(0.4) : Color.clear))
+                                        .frame(width: isCurrent ? 14 : 10, height: isCurrent ? 14 : 10)
+                                    Circle()
+                                        .stroke(isCurrent ? gold : (isReached ? gold.opacity(0.4) : gold.opacity(0.15)), lineWidth: 1)
+                                        .frame(width: isCurrent ? 14 : 10, height: isCurrent ? 14 : 10)
+                                }
+                                if index < DeedLevel.allCases.count - 1 {
+                                    Rectangle()
+                                        .fill(level.rawValue < newLevel.rawValue ? gold.opacity(0.5) : gold.opacity(0.1))
+                                        .frame(width: 1, height: 20)
+                                }
+                            }
+                            .frame(width: 20)
+
+                            // Level info
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(level.arabicName)
+                                        .font(.system(size: isCurrent ? 16 : 13,
+                                                      weight: isCurrent ? .semibold : .regular))
+                                        .foregroundColor(isCurrent ? gold : (isReached ? gold.opacity(0.5) : gold.opacity(0.2)))
+
+                                    Text(level.localizedName(language: selectedLanguage))
+                                        .font(.system(size: isCurrent ? 12 : 10))
+                                        .foregroundColor(isCurrent ? gold.opacity(0.7) : (isReached ? gold.opacity(0.3) : gold.opacity(0.12)))
+                                }
+
+                                Spacer()
+
+                                if isCurrent {
+                                    Text(level.streakRange(language: selectedLanguage))
+                                        .font(.system(size: 11))
+                                        .foregroundColor(gold.opacity(0.5))
+                                }
+                            }
+                            .padding(.vertical, isCurrent ? 12 : 6)
+                            .padding(.horizontal, 16)
+                            .background(
+                                isCurrent ?
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(gold.opacity(0.08))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(gold.opacity(0.2), lineWidth: 1)
+                                    ) : nil
+                            )
+                        }
+                        .padding(.horizontal, 32)
+                    }
+                }
+
+                Spacer()
+
+                // Hadith
+                Text(localizedString("\"The most beloved deeds to Allah are the most consistent, even if small.\"", language: selectedLanguage))
+                    .font(.system(size: 12, weight: .light))
+                    .italic()
+                    .foregroundColor(gold.opacity(0.4))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+
+                Spacer()
+
+                // Dismiss
                 Button {
                     onDismiss()
                 } label: {
@@ -78,7 +132,7 @@ struct LevelUpView: View {
                         .cornerRadius(14)
                 }
                 .padding(.horizontal, 24)
-                .padding(.bottom, 40)
+                .padding(.bottom, 32)
             }
         }
     }
@@ -87,19 +141,27 @@ struct LevelUpView: View {
         switch newLevel {
         case .muraqabah:
             return selectedLanguage == "ar"
-                ? "أتممت ١٤ يوماً. قلبك بدأ يتعلم."
+                ? "١٤ يوماً من الحضور. قلبك بدأ يتعلم."
+                : selectedLanguage == "th"
+                ? "14 วันที่มาแสดงตัว หัวใจของคุณกำลังเรียนรู้"
                 : "14 days of showing up. Your heart is learning."
         case .istiqamah:
             return selectedLanguage == "ar"
-                ? "٣٥ يوماً من الحضور. العادة تتشكل."
+                ? "٣٥ يوماً من الثبات. العادة تتشكل."
+                : selectedLanguage == "th"
+                ? "35 วันแห่งความมั่นคง นิสัยกำลังก่อตัว"
                 : "35 days of presence. The habit is forming."
         case .aadah:
             return selectedLanguage == "ar"
                 ? "٥٥ يوماً. أنت تبني شيئاً حقيقياً."
+                : selectedLanguage == "th"
+                ? "55 วัน คุณกำลังสร้างสิ่งที่แท้จริง"
                 : "55 days. You are building something real."
         case .tabiah:
             return selectedLanguage == "ar"
                 ? "٦٦ يوماً. أصبح هذا طبيعتك."
+                : selectedLanguage == "th"
+                ? "66 วัน นี่กลายเป็นธรรมชาติของคุณแล้ว"
                 : "66 days. This has become your nature."
         default:
             return ""
