@@ -12,23 +12,15 @@ struct HomeView: View {
     @Query private var rhythmStates: [GlobalRhythmState]
     @AppStorage("dailyGoal") private var dailyGoal: Int = 1
     @AppStorage("selectedLanguage") private var selectedLanguage: String = AppLanguage.english.rawValue
-    @AppStorage("hasSeenTierPopup") var hasSeenTierPopup: Bool = false
-    @AppStorage("upgradeIconVisible") var upgradeIconVisible: Bool = false
     @Environment(\.requestReview) var requestReview
     @AppStorage("focusDeeds") var focusDeedsRaw: String = ""
     @AppStorage("smartNotifications") var smartNotificationsEnabled: Bool = true
     @AppStorage("lastRhythmAlertDate") var lastRhythmAlertDate: String = ""
-    @State private var selectedSurahFrom: Surah = QuranData.surahs[0]
-    @State private var selectedAyahFrom: Int = 1
-    @State private var selectedSurahTo: Surah = QuranData.surahs[0]
-    @State private var selectedAyahTo: Int = 1
     @State private var postLogWorship: WorshipType? = nil
     @State private var postLogInsight: String = ""
     @State private var postLogCount66: Int = 0
-    @State private var showLanguagePicker = false
     @State private var showLevelUp = false
     @State private var newlyReachedLevel: DeedLevel = .niyyah
-    @State private var showUpgradePopup: Bool = false
     @State private var showQuranSheet = false
     @State private var showRhythmAlert = false
     @State private var showToast = false
@@ -74,9 +66,6 @@ struct HomeView: View {
         return localizedString(key, language: selectedLanguage)
     }
     
-    var dailyGoalMet: Bool {
-        viewModel.totalDeedsToday(logs: allLogs) >= dailyGoal
-    }
     
     var hijriDate: String {
         let formatter = DateFormatter()
@@ -86,14 +75,7 @@ struct HomeView: View {
         return formatter.string(from: Date()).uppercased()
     }
     
-    var ayahsRead: Int {
-        engine.calculateAyahsRead(
-            surahFromNumber: selectedSurahFrom.number,
-            ayahFrom: selectedAyahFrom,
-            surahToNumber: selectedSurahTo.number,
-            ayahTo: selectedAyahTo
-        )
-    }
+
     
     func showPostLog(for worship: WorshipType, wasLoggedBefore: Bool) {
         guard !wasLoggedBefore else { return }
@@ -182,15 +164,7 @@ struct HomeView: View {
                     
                     // Right column — upgrade icon + mirror box stacked
                     VStack(alignment: .trailing, spacing: 8) {
-                        if upgradeIconVisible {
-                            Button {
-                                showUpgradePopup = true
-                            } label: {
-                                Image(systemName: "arrow.up.circle")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.8))
-                            }
-                        }
+
                         
                         if let rhythmState = rhythmStates.first,
                            let message = engine.mirrorMessage(state: rhythmState, language: selectedLanguage) {
@@ -368,13 +342,7 @@ struct HomeView: View {
             )
             .presentationDetents([.fraction(0.75)])
         }
-        .onChange(of: viewModel.isReadyForNextCommitment(logs: allLogs, dailyGoal: dailyGoal)) { _, isReady in
-            if isReady && !hasSeenTierPopup {
-                hasSeenTierPopup = true
-                upgradeIconVisible = true
-                showUpgradePopup = true
-            }
-        }
+
         .sheet(isPresented: $showQuranSheet, onDismiss: {
             showPostLog(for: .quran, wasLoggedBefore: false)
         }) {
