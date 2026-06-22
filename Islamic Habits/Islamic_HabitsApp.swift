@@ -34,3 +34,4 @@ struct Islamic_HabitsApp: App {
         .modelContainer(sharedModelContainer)
     }
 }
+

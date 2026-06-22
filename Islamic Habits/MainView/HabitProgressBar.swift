@@ -13,12 +13,20 @@ struct HabitProgressBar: View {
         min(progress, 1.0)
     }
     
+    var deedsLoggedText: String {
+        if selectedLanguage == "ar" {
+            return "\(localizedString("habit.logged_today", language: selectedLanguage)) \(deedsToday)"
+        } else {
+            return "\(deedsToday) \(localizedString("habit.logged_today", language: selectedLanguage))"
+        }
+    }
+    
     var message: String {
         let key: String
         switch progress {
-        case 0..<0.3: key = "habitProgress.begin"
-        case 0.3..<0.6: key = "habitProgress.forming"
-        case 0.6..<1.0: key = "habitProgress.almost"
+        case 0..<0.15: key = "habitProgress.begin"
+        case 0.15..<0.5: key = "habitProgress.forming"
+        case 0.5..<0.85: key = "habitProgress.almost"
         default: key = "habitProgress.established"
         }
         return localizedString(key, language: selectedLanguage)
@@ -82,7 +90,8 @@ struct HabitProgressBar: View {
             }
             .frame(height: 10)
             
-            Text("\(deedsToday) \(localizedString("habit.logged_today", language: selectedLanguage))")                .font(.system(size: 11, weight: .light))
+            Text(deedsLoggedText)
+                .font(.system(size: 11, weight: .light))
                 .tracking(1.0)
                 .foregroundColor(.white.opacity(0.3))
             

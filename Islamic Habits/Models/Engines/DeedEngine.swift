@@ -130,6 +130,14 @@ struct DeedEngine {
         state.currentLevel = newLevel.rawValue
     }
     
+    func applyLevelUpIfNeeded(state: GlobalRhythmState) {
+        let streak = globalEffectiveStreak(state: state)
+        let suggestedLevel = DeedLevel.from(streak: streak)
+        
+        guard suggestedLevel.rawValue > state.currentLevel else { return }
+        state.currentLevel = suggestedLevel.rawValue
+    }
+    
     func last66DaysLogged(for worshipType: WorshipType) -> [Date: Bool] {
         var result: [Date: Bool] = [:]
         let calendar = Calendar.current
@@ -152,126 +160,100 @@ struct DeedEngine {
         return result
     }
     
-    func mirrorMessage(focusDeeds: [WorshipType], language: String) -> MirrorMessage? {
-        if !focusDeeds.isEmpty {
+    func mirrorMessage(state: GlobalRhythmState, language: String) -> MirrorMessage? {
+        let currentLevel = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        let streak = globalEffectiveStreak(state: state)
+        let daysPastGrace = globalDaysPastGrace(state: state)
+        let randomDeed = WorshipType.allCases.randomElement()!
 
-            // 1. ALERT — streak broken
-            for worship in focusDeeds {
-                switch streakStatus(for: worship) {
-                case .broken:
-                    return MirrorMessage(
-                        priority: .alert,
-                        icon: "exclamationmark.circle.fill",
-                        title: worship.arabicName,
-                        subtitle: localizedString("mirror.streak.broken", language: language)
-                    )
-                case .warning(let remaining) where remaining == 0:
-                    return MirrorMessage(
-                        priority: .alert,
-                        icon: "exclamationmark.triangle.fill",
-                        title: worship.arabicName,
-                        subtitle: localizedString("mirror.grace.last", language: language)
-                    )
-                default: break
-                }
-            }
-
-            // 2. NUDGE — not logged today
-            for worship in focusDeeds {
-                let isLogged = loggedTodayByWorship[worship.rawValue] ?? false
-                if !isLogged {
-                    return MirrorMessage(
-                        priority: .nudge,
-                        icon: worship.icon,
-                        title: worship.arabicName,
-                        subtitle: localizedString("mirror.not.logged", language: language)
-                    )
-                }
-            }
-
-            // 3. PROGRESS — streak multiple of 7
-            for worship in focusDeeds {
-                let s = streak(for: worship)
-                if s > 0 && s % 7 == 0 {
-                    return MirrorMessage(
-                        priority: .progress,
-                        icon: "star",
-                        title: worship.arabicName,
-                        subtitle: "\(s) \(localizedString("focus.streak.healthy", language: language))s. \(localizedString("mirror.angels", language: language))"
-                    )
-                }
-            }
-
-            // 4. LEVEL UP — within 5 days of next level
-            for worship in focusDeeds {
-                let s = streak(for: worship)
-                let currentLevel = effectiveLevel(for: worship)
-                if currentLevel != .tabiah {
-                    let daysLeft = currentLevel.progressRange.upperBound - s
-                    if daysLeft <= 5 && daysLeft > 0 {
-                        let nextLevel = DeedLevel(rawValue: currentLevel.rawValue + 1) ?? .tabiah
-                        return MirrorMessage(
-                            priority: .levelUp,
-                            icon: "arrow.up.circle.fill",
-                            title: worship.arabicName,
-                            subtitle: "\(daysLeft) \(localizedString("mirror.days.to", language: language)) \(nextLevel.arabicName). \(localizedString("mirror.lasting", language: language))"
-
-                        )
-                    }
-                }
-            }
-
-            // 5. QUOTE — from focus deed
-            let focusDeed = focusDeeds.randomElement()!
+        // 1. ALERT — level should drop
+        if globalShouldDropLevel(state: state) {
             return MirrorMessage(
-                priority: .quote,
-                icon: "quote.bubble",
-                title: focusDeed.arabicName,
-                subtitle: localizedString(focusDeed.randomInsight, language: language)
+                priority: .alert,
+                icon: "exclamationmark.circle.fill",
+                title: currentLevel.localizedName(language: language),
+                subtitle: localizedString("mirror.streak.broken", language: language)
             )
+        }
 
-        } else {
-            // No focus deeds — randomly pick between 3 general messages
-            let randomDeed = WorshipType.allCases.randomElement()!
-            let option = Int.random(in: 1...3)
+        // 2. ALERT — past grace but not yet at drop threshold
+        if daysPastGrace > 0 {
+            return MirrorMessage(
+                priority: .alert,
+                icon: "exclamationmark.triangle.fill",
+                title: currentLevel.localizedName(language: language),
+                subtitle: localizedString("mirror.grace.last", language: language)
+            )
+        }
 
-            switch option {
-            case 1:
-                // Rhythm progress
-                let rhythm = rhythmLast66Days
-                let message = rhythm == 0
-                    ? localizedString("mirror.journey.start", language: language)
-                    : rhythm < 50
-                    ? "\(rhythm)% \(localizedString("mirror.habit.building", language: language))"
-                    : "\(rhythm)% \(localizedString("mirror.habit.progress", language: language))"
+        // 3. NUDGE — daily goal not met today
+        if todayLogs.count < dailyGoal {
+            return MirrorMessage(
+                priority: .nudge,
+                icon: "moon.stars",
+                title: "مرآة",
+                subtitle: localizedString("mirror.not.logged", language: language)
+            )
+        }
+
+        // 4. PROGRESS — streak milestone (every 7 days)
+        if streak > 0 && streak % 7 == 0 {
+            return MirrorMessage(
+                priority: .progress,
+                icon: "star",
+                title: currentLevel.localizedName(language: language),
+                subtitle: "\(streak) \(localizedString("focus.streak.healthy", language: language)). \(localizedString("mirror.angels", language: language))"
+            )
+        }
+
+        // 5. LEVEL UP — within 5 days of next level
+        if currentLevel != .tabiah {
+            let daysLeft = currentLevel.progressRange.upperBound - streak
+            if daysLeft <= 5 && daysLeft > 0 {
+                let nextLevel = DeedLevel(rawValue: currentLevel.rawValue + 1) ?? .tabiah
                 return MirrorMessage(
-                    priority: .quote,
-                    icon: "chart.bar",
-                    title: "مرآة",
-                    subtitle: message
-                )
-
-            case 2:
-                // Encourage picking focus deeds
-                return MirrorMessage(
-                    priority: .nudge,
-                    icon: "scope",
-                    title: "مرآة",
-                    subtitle: localizedString("mirror.pick.focus", language: language)
-                )
-
-            default:
-                // General Islamic quote
-                return MirrorMessage(
-                    priority: .quote,
-                    icon: "quote.bubble",
-                    title: randomDeed.arabicName,
-                    subtitle: localizedString(randomDeed.randomInsight, language: language)
+                    priority: .levelUp,
+                    icon: "arrow.up.circle.fill",
+                    title: currentLevel.localizedName(language: language),
+                    subtitle: "\(daysLeft) \(localizedString("mirror.days.to", language: language)) \(nextLevel.arabicName). \(localizedString("mirror.lasting", language: language))"
                 )
             }
         }
+
+        // 6. QUOTE — random, three options
+        let option = Int.random(in: 1...3)
+        switch option {
+        case 1:
+            let percentage = Int(globalDecayedPercentage(state: state))
+            let message = percentage == 0
+                ? localizedString("mirror.journey.start", language: language)
+                : percentage < 50
+                ? "\(percentage)% \(localizedString("mirror.habit.building", language: language))"
+                : "\(percentage)% \(localizedString("mirror.habit.progress", language: language))"
+            return MirrorMessage(
+                priority: .quote,
+                icon: "chart.bar",
+                title: "مرآة",
+                subtitle: message
+            )
+        case 2:
+            return MirrorMessage(
+                priority: .nudge,
+                icon: "scope",
+                title: "مرآة",
+                subtitle: localizedString("mirror.pick.focus", language: language)
+            )
+        default:
+            return MirrorMessage(
+                priority: .quote,
+                icon: "quote.bubble",
+                title: randomDeed.arabicName,
+                subtitle: localizedString(randomDeed.randomInsight, language: language)
+            )
+        }
     }
-    // Helper — reuses your existing localizedString
+    
+    
     private func localizedMirror(_ key: String, language: String) -> String {
         localizedString(key, language: language)
     }
@@ -333,5 +315,142 @@ struct DeedEngine {
         }
 
         return total
+    }
+    
+    //MARK: pre-worship focus deeds
+    
+    var loggedTodayByWorship: [String: Bool] {
+        var result: [String: Bool] = [:]
+        for worship in WorshipType.allCases {
+            result[worship.rawValue] = todayLogs.contains { $0.worshipType == worship.rawValue }
+        }
+        return result
+    }
+
+    var todayCountByWorship: [String: Int] {
+        var result: [String: Int] = [:]
+        for worship in WorshipType.allCases {
+            result[worship.rawValue] = todayLogs.filter { $0.worshipType == worship.rawValue }.count
+        }
+        return result
+    }
+    
+    func daysSinceLastLog(for worshipType: WorshipType) -> Int? {
+        let worshipLogs = logs.filter { $0.worshipType == worshipType.rawValue }
+        guard let lastLog = worshipLogs.max(by: { $0.loggedAt < $1.loggedAt }) else { return nil }
+        return Calendar.current.dateComponents([.day], from: lastLog.loggedAt, to: Date()).day
+    }
+
+    func isOverdue(for worshipType: WorshipType) -> Bool {
+        guard let days = daysSinceLastLog(for: worshipType) else { return false }
+        switch worshipType.cadence {
+        case "daily": return days >= 3
+        case "weekly": return days >= 14
+        case "monthly": return days >= 60
+        default: return false
+        }
+    }
+    
+    func rawStreak(for worshipType: WorshipType) -> Int {
+        let calendar = Calendar.current
+        let unit = worshipType.streakUnit
+        var periodStart = startOfIslamicDay
+        var streak = 0
+
+        while true {
+            let periodEnd = calendar.date(byAdding: .day, value: 1, to: periodStart)!
+            let windowStart = calendar.date(byAdding: .day, value: -(unit - 1), to: periodStart)!
+
+            let hasLog = logs.contains {
+                $0.worshipType == worshipType.rawValue &&
+                $0.loggedAt >= windowStart &&
+                $0.loggedAt < periodEnd
+            }
+
+            guard hasLog else { break }
+            streak += 1
+            periodStart = calendar.date(byAdding: .day, value: -unit, to: periodStart)!
+        }
+        return streak
+    }
+
+    func level(for worshipType: WorshipType) -> DeedLevel {
+        DeedLevel.from(streak: rawStreak(for: worshipType))
+    }
+
+    func streak(for worshipType: WorshipType) -> Int {
+        let calendar = Calendar.current
+        let unit = worshipType.streakUnit
+        let graceDays = level(for: worshipType).graceDays
+        var periodStart = startOfIslamicDay
+        var streak = 0
+        var consecutiveMisses = 0
+
+        while true {
+            let periodEnd = calendar.date(byAdding: .day, value: 1, to: periodStart)!
+            let windowStart = calendar.date(byAdding: .day, value: -(unit - 1), to: periodStart)!
+
+            let hasLog = logs.contains {
+                $0.worshipType == worshipType.rawValue &&
+                $0.loggedAt >= windowStart &&
+                $0.loggedAt < periodEnd
+            }
+
+            if hasLog {
+                streak += 1
+                consecutiveMisses = 0
+            } else {
+                consecutiveMisses += 1
+                if consecutiveMisses > graceDays { break }
+            }
+
+            periodStart = calendar.date(byAdding: .day, value: -unit, to: periodStart)!
+        }
+        return streak
+    }
+
+    func effectiveLevel(for worshipType: WorshipType) -> DeedLevel {
+        let currentLevel = level(for: worshipType)
+        let used = graceDaysUsed(for: worshipType)
+        let total = currentLevel.graceDays
+        if used > total {
+            let droppedRaw = max(1, currentLevel.rawValue - 1)
+            return DeedLevel(rawValue: droppedRaw) ?? .niyyah
+        }
+        return currentLevel
+    }
+
+    func graceDaysUsed(for worshipType: WorshipType) -> Int {
+        let calendar = Calendar.current
+        let unit = worshipType.streakUnit
+        var periodStart = startOfIslamicDay
+        var used = 0
+        let gracePeriods = level(for: worshipType).graceDays
+
+        while true {
+            let periodEnd = calendar.date(byAdding: .day, value: 1, to: periodStart)!
+            let windowStart = calendar.date(byAdding: .day, value: -(unit - 1), to: periodStart)!
+
+            let hasLog = logs.contains {
+                $0.worshipType == worshipType.rawValue &&
+                $0.loggedAt >= windowStart &&
+                $0.loggedAt < periodEnd
+            }
+
+            if hasLog { break }
+            used += 1
+            if used > gracePeriods { break }
+
+            periodStart = calendar.date(byAdding: .day, value: -unit, to: periodStart)!
+        }
+        return used
+    }
+
+    func streakStatus(for worshipType: WorshipType) -> StreakStatus {
+        let used = graceDaysUsed(for: worshipType)
+        let total = level(for: worshipType).graceDays
+        if used == 0 { return .healthy }
+        if used <= total { return .warning(remaining: total - used) }
+        return .broken
     }
 }

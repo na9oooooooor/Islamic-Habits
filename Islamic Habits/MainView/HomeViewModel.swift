@@ -34,4 +34,6 @@ struct HomeViewModel {
         let newLog = DeedLog(worshipType: worshipType)
         context.insert(newLog)
     }
+    
+    
 }

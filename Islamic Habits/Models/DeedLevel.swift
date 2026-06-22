@@ -102,8 +102,8 @@ enum DeedLevel: Int, CaseIterable {
     func progress(streak: Int) -> Double {
         if self == .tabiah { return 1.0 }
         let range = progressRange
-        let position = streak - range.lowerBound
-        let total = range.upperBound - range.lowerBound
+        let position = streak - range.lowerBound + 1
+        let total = range.upperBound - range.lowerBound + 1 
         return min(max(Double(position) / Double(total), 0), 1)
     }
     

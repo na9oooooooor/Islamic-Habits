@@ -18,14 +18,34 @@
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchScreen" translatesAutoresizingMaskIntoConstraints="NO" id="OMX-qJ-cg0">
                                 <rect key="frame" x="-341" y="-371" width="1075" height="1646"/>
                             </imageView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Mirror" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="INo-Hd-QFM">
+                                <rect key="frame" x="82" y="238" width="229" height="67"/>
+                                <fontDescription key="fontDescription" type="system" weight="light" pointSize="16"/>
+                                <color key="textColor" white="1" alpha="0.40333406690140844" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="مرآة" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="9S8-fQ-rff">
+                                <rect key="frame" x="82" y="186" width="229" height="87"/>
+                                <fontDescription key="fontDescription" type="system" weight="thin" pointSize="48"/>
+                                <color key="textColor" red="0.7915039062" green="0.69140625" blue="0.515625" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
                         <color key="backgroundColor" red="0.6015625" green="0.83203125" blue="0.2678222656" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
-                            <constraint firstItem="OMX-qJ-cg0" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" constant="-371" id="8gh-mN-gXj"/>
-                            <constraint firstAttribute="trailing" secondItem="OMX-qJ-cg0" secondAttribute="trailing" constant="-341" id="chG-aJ-9gj"/>
-                            <constraint firstItem="OMX-qJ-cg0" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="-341" id="x58-Zy-jm9"/>
-                            <constraint firstAttribute="bottom" secondItem="OMX-qJ-cg0" secondAttribute="bottom" constant="-423" id="zFr-9E-x1f"/>
+                            <constraint firstAttribute="bottom" secondItem="OMX-qJ-cg0" secondAttribute="bottom" constant="-423" id="A8K-dk-fjL"/>
+                            <constraint firstItem="INo-Hd-QFM" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="82" id="AAJ-vp-txS"/>
+                            <constraint firstItem="Bcu-3y-fUS" firstAttribute="trailing" secondItem="INo-Hd-QFM" secondAttribute="trailing" constant="82" id="JL1-pI-SkA"/>
+                            <constraint firstItem="Bcu-3y-fUS" firstAttribute="bottom" secondItem="INo-Hd-QFM" secondAttribute="bottom" constant="479" id="TX6-gt-AIO"/>
+                            <constraint firstItem="INo-Hd-QFM" firstAttribute="top" secondItem="Bcu-3y-fUS" secondAttribute="top" constant="120" id="XE8-3V-hRN"/>
+                            <constraint firstAttribute="trailing" secondItem="OMX-qJ-cg0" secondAttribute="trailing" constant="-341" id="Y9A-PM-g8L"/>
+                            <constraint firstItem="OMX-qJ-cg0" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" constant="-371" id="cBK-fp-5Te"/>
+                            <constraint firstItem="Bcu-3y-fUS" firstAttribute="trailing" secondItem="9S8-fQ-rff" secondAttribute="trailing" constant="82" id="dh6-VW-dbM"/>
+                            <constraint firstItem="9S8-fQ-rff" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" constant="82" id="mkn-Kb-nt4"/>
+                            <constraint firstItem="9S8-fQ-rff" firstAttribute="top" secondItem="Bcu-3y-fUS" secondAttribute="top" constant="68" id="nJ0-nR-hNh"/>
+                            <constraint firstItem="OMX-qJ-cg0" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="-341" id="v6Y-FQ-bfl"/>
+                            <constraint firstItem="Bcu-3y-fUS" firstAttribute="bottom" secondItem="9S8-fQ-rff" secondAttribute="bottom" constant="511" id="w0V-Tf-EbU"/>
                         </constraints>
                     </view>
                 </viewController>

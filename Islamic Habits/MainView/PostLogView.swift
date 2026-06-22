@@ -4,7 +4,7 @@ struct PostLogView: View {
     
     let worship: WorshipType
     let insightKey: String
-    let countLast66: Int
+    let globalStreak: Int
     let totalToday: Int
     let selectedLanguage: String
     let onDismiss: () -> Void
@@ -65,10 +65,10 @@ struct PostLogView: View {
                 VStack(spacing: 16) {
                     HStack(spacing: 24) {
                         VStack(spacing: 4) {
-                            Text("\(countLast66)")
+                            Text(localizedString("postlog.last66days", language: selectedLanguage))
                                 .font(.system(size: 28, weight: .thin))
                                 .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52))
-                            Text(localizedString("postlog.last66days", language: selectedLanguage))
+                            Text(localizedString("focus.streak.healthy", language: selectedLanguage))
                                 .font(.system(size: 11, weight: .light))
                                 .foregroundColor(.white.opacity(0.35))
                         }

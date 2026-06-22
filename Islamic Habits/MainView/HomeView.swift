@@ -17,9 +17,7 @@ struct HomeView: View {
     @Environment(\.requestReview) var requestReview
     @AppStorage("focusDeeds") var focusDeedsRaw: String = ""
     @AppStorage("smartNotifications") var smartNotificationsEnabled: Bool = true
-    @AppStorage("lastMilestoneDate") var lastMilestoneDateString: String = ""
-    @State private var showDailyMilestone = false
-    @State private var pendingPostLogWorship: WorshipType? = nil
+    @AppStorage("lastRhythmAlertDate") var lastRhythmAlertDate: String = ""
     @State private var selectedSurahFrom: Surah = QuranData.surahs[0]
     @State private var selectedAyahFrom: Int = 1
     @State private var selectedSurahTo: Surah = QuranData.surahs[0]
@@ -28,8 +26,13 @@ struct HomeView: View {
     @State private var postLogInsight: String = ""
     @State private var postLogCount66: Int = 0
     @State private var showLanguagePicker = false
+    @State private var showLevelUp = false
+    @State private var newlyReachedLevel: DeedLevel = .niyyah
     @State private var showUpgradePopup: Bool = false
     @State private var showQuranSheet = false
+    @State private var showRhythmAlert = false
+    @State private var showToast = false
+    @State private var toastMessage: MirrorMessage? = nil
     
     
     var engine: DeedEngine {
@@ -37,18 +40,14 @@ struct HomeView: View {
     }
     
     var levelText: String {
-        if selectedLanguage == "ar" {
-            return "\(localizedString("general.a_day", language: selectedLanguage)) \(dailyGoal > 1 ? localizedString("general.deeds", language: selectedLanguage) : localizedString("general.deed", language: selectedLanguage)) \(dailyGoal)  ·  \(localizedString("general.level", language: selectedLanguage)) \(dailyGoal)"
-        } else {
-            return "\(localizedString("general.level", language: selectedLanguage)) \(dailyGoal)  ·  \(dailyGoal) \(dailyGoal > 1 ? localizedString("general.deeds", language: selectedLanguage) : localizedString("general.deed", language: selectedLanguage)) \(localizedString("general.a_day", language: selectedLanguage))"
-        }
+        guard let state = rhythmStates.first else { return "" }
+        let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        let levelName = level.localizedName(language: selectedLanguage)
+        let streak = engine.globalEffectiveStreak(state: state)
+        let dayWord = localizedString("quran.card.day", language: selectedLanguage)
+        return "\(levelName)  ·  \(dayWord) \(streak)"
     }
     
-    
-    
-    var shownMilestoneToday: Bool {
-        lastMilestoneDateString == todayString()
-    }
     
     var focusDeeds: [WorshipType] {
         focusDeedsRaw
@@ -98,19 +97,41 @@ struct HomeView: View {
     
     func showPostLog(for worship: WorshipType, wasLoggedBefore: Bool) {
         guard !wasLoggedBefore else { return }
-        let freshEngine = engine
         postLogInsight = worship.randomInsight
-        postLogCount66 = freshEngine.countLast66Days(for: worship)
-
+        postLogCount66 = rhythmStates.first.map { engine.globalEffectiveStreak(state: $0) } ?? 0
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            let totalToday = viewModel.totalDeedsToday(logs: allLogs)
-            if totalToday == dailyGoal && !shownMilestoneToday {
-                lastMilestoneDateString = todayString()
-                pendingPostLogWorship = worship
-                showDailyMilestone = true
-            } else {
-                postLogWorship = worship
+            postLogWorship = worship
+        }
+    }
+    
+    func checkRhythmAlerts() {
+        guard let state = rhythmStates.first else { return }
+        guard let message = engine.mirrorMessage(state: state, language: selectedLanguage) else { return }
+
+        switch message.priority {
+        case .alert:
+            // only once per day
+            if lastRhythmAlertDate != todayString() {
+                lastRhythmAlertDate = todayString()
+                showRhythmAlert = true
             }
+        case .progress:
+            // once per session — show as toast
+            toastMessage = message
+            showToast = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    showToast = false
+                }
+            }
+        case .levelUp:
+            if let state = rhythmStates.first {
+                let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+                newlyReachedLevel = level
+                showLevelUp = true
+            }
+        default:
+            break
         }
     }
     
@@ -171,8 +192,8 @@ struct HomeView: View {
                             }
                         }
                         
-                        if let message = engine
-                            .mirrorMessage(focusDeeds: focusDeeds, language: selectedLanguage) {
+                        if let rhythmState = rhythmStates.first,
+                           let message = engine.mirrorMessage(state: rhythmState, language: selectedLanguage) {
                             MirrorBoxView(message: message)
                                 .frame(width: 150)
                         }
@@ -207,7 +228,7 @@ struct HomeView: View {
                                     logCount: logCount,
                                     selectedLanguage: selectedLanguage,
                                     isOverdue: isOverdue,
-                                    isFocused: focusDeeds.contains(worship)  // new
+                                    isFocused: focusDeeds.contains(worship)
                                 ) {
                                     viewModel.log(worshipType: worship, context: context)
 
@@ -246,53 +267,77 @@ struct HomeView: View {
             VStack {
                 Spacer()
                 HabitProgressBar(
-                    progress: Double(viewModel.globalRhythm(logs: allLogs, dailyGoal: dailyGoal)) / 100,
+                    progress: rhythmStates.first.map {
+                        engine.globalDecayedPercentage(state: $0) / 100
+                    } ?? 0,
                     deedsToday: viewModel.totalDeedsToday(logs: allLogs),
                     selectedLanguage: selectedLanguage,
                     canUndo: viewModel.canUndo(logs: allLogs),
                     onUndo: {
                         viewModel.undoLastLog(logs: allLogs, context: context)
-                        // if total drops below goal, allow milestone to show again
-                        let totalAfterUndo = viewModel.totalDeedsToday(logs: allLogs) - 1
-                        if totalAfterUndo < dailyGoal {
-                            lastMilestoneDateString = ""
-                        }
                     }
                 )
                 .padding(.bottom, 100)
             }            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                 .ignoresSafeArea(edges: .bottom)
-        }
-        
-        .sheet(isPresented: $showDailyMilestone, onDismiss: {
-            if let pending = pendingPostLogWorship {
-                postLogWorship = pending
-                pendingPostLogWorship = nil
+            
+            // Toast
+            if showToast, let toast = toastMessage {
+                VStack {
+                    Spacer()
+                    RhythmToast(message: toast)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, 120)
+                }
+                .animation(.spring(response: 0.4), value: showToast)
+                .allowsHitTesting(false)
             }
-        }) {
-            DailyMilestoneView(
-                dailyGoal: dailyGoal,
-                selectedLanguage: selectedLanguage,
-                rhythmPercent: viewModel.globalRhythm(logs: allLogs, dailyGoal: dailyGoal),  // add
-                onDismiss: { showDailyMilestone = false }
-            )
-            .presentationDetents([.fraction(0.75)])
         }
+        .sheet(isPresented: $showRhythmAlert) {
+            if let state = rhythmStates.first,
+               let message = engine.mirrorMessage(state: state, language: selectedLanguage) {
+                RhythmAlertSheet(
+                    message: message,
+                    selectedLanguage: selectedLanguage,
+                    onDismiss: { showRhythmAlert = false }
+                )
+                .presentationDetents([.fraction(0.6)])
+            }
+        }
+
         .onAppear {
             ensureGlobalRhythmStateExists(states: rhythmStates, context: context)
+
+            if let state = rhythmStates.first {
+                let levelBefore = state.currentLevel
+                engine.applyLevelDropIfNeeded(state: state)
+                engine.applyLevelUpIfNeeded(state: state)
+                let levelAfter = state.currentLevel
+
+                if levelAfter > levelBefore,
+                   let newLevel = DeedLevel(rawValue: levelAfter) {
+                    newlyReachedLevel = newLevel
+                    showLevelUp = true
+                }
+            }
+
+            // only check rhythm alerts if level up isn't already showing
+            if !showLevelUp {
+                checkRhythmAlerts()
+            }
+
             NotificationManager.requestPermission()
             NotificationManager.cancelToday()
             let has3Logs = engine.has3Logs
             if has3Logs && AppReviewManager.shouldRequestReview() {
                 requestReview()
             }
-        
-           
+
             NotificationManager.scheduleAll(
                 engine: engine,
                 focusDeeds: focusDeeds,
                 smartNotificationsEnabled: smartNotificationsEnabled,
-                language: selectedLanguage 
+                language: selectedLanguage
             )
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
@@ -308,16 +353,20 @@ struct HomeView: View {
             PostLogView(
                 worship: worship,
                 insightKey: postLogInsight,
-                countLast66: postLogCount66,
+                globalStreak: postLogCount66,   // ← renamed
                 totalToday: viewModel.totalDeedsToday(logs: allLogs),
                 selectedLanguage: selectedLanguage,
                 onDismiss: { postLogWorship = nil }
             )
             .presentationDetents([.fraction(0.75)])
         }
-        .sheet(isPresented: $showUpgradePopup) {
-            CommitmentUpgradeView()
-                .presentationDetents([.fraction(0.75)])
+        .sheet(isPresented: $showLevelUp) {
+            LevelUpView(
+                newLevel: newlyReachedLevel,
+                selectedLanguage: selectedLanguage,
+                onDismiss: { showLevelUp = false }
+            )
+            .presentationDetents([.fraction(0.75)])
         }
         .onChange(of: viewModel.isReadyForNextCommitment(logs: allLogs, dailyGoal: dailyGoal)) { _, isReady in
             if isReady && !hasSeenTierPopup {
@@ -334,7 +383,7 @@ struct HomeView: View {
                 onSave: {}
             )
         }
-        .environment(\.layoutDirection, AppLanguage(rawValue: selectedLanguage)?.layoutDirection ?? .leftToRight)
+        .environment(\.layoutDirection, AppLanguage(rawValue: selectedLanguage)?.layoutDirection ?? LayoutDirection.leftToRight)
     }
     }
     
