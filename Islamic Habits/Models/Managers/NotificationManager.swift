@@ -102,7 +102,7 @@ struct NotificationManager {
             }
         default:
             switch worship.cadence {
-            case "daily":   return "You haven't logged this today. Take a moment."
+            case "daily":   return "You haven't logged today. Take a moment."
             case "weekly":  return "This week's \(worship.arabicName) is waiting for you."
             case "monthly": return "Don't let this month pass without \(worship.arabicName)."
             default:        return "Time to log \(worship.arabicName)."

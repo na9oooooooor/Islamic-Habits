@@ -97,7 +97,8 @@ struct DeedEngine {
         guard let daysSince = globalDaysSinceLastLog() else { return 0 }
         let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
         let graceDays = level.graceDays
-        return max(0, daysSince - graceDays)
+        let completedMissedDays = max(0, daysSince - 1)
+        return max(0, completedMissedDays - graceDays)
     }
     
     func globalDecayedPercentage(state: GlobalRhythmState) -> Double {
