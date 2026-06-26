@@ -49,7 +49,8 @@ struct DeedEngine {
     
     func globalDaysSinceLastLog() -> Int? {
         guard let lastLog = logs.max(by: { $0.loggedAt < $1.loggedAt }) else { return nil }
-        return Calendar.current.dateComponents([.day], from: lastLog.loggedAt, to: Date()).day
+        let lastLogIslamicDay = islamicStartOfDay(for: lastLog.loggedAt)
+        return Calendar.current.dateComponents([.day], from: lastLogIslamicDay, to: startOfIslamicDay).day
     }
 
 
@@ -72,9 +73,12 @@ struct DeedEngine {
                 $0.loggedAt < periodEnd
             }.count
 
+            let isToday = periodStart == startOfIslamicDay
+            
             if logCount >= dailyGoal {
                 streak += 1
                 consecutiveMisses = 0
+            } else if isToday {
             } else {
                 consecutiveMisses += 1
                 if consecutiveMisses > graceDays { break }
