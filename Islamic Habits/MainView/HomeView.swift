@@ -216,6 +216,7 @@ struct HomeView: View {
                                          .frame(width: 40)
                                      }
                                  )
+
                                 .overlay(
                                     Image(palmImageName)
                                            .resizable()
@@ -224,6 +225,7 @@ struct HomeView: View {
                                            .offset(y: -30),
                                        alignment: .bottom
                                    )
+                
                             Spacer()
                         }
                         
