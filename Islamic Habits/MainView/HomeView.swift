@@ -121,14 +121,11 @@ struct HomeView: View {
     
     var body: some View {
         ZStack {
-            Color(red: 0.12, green: 0.09, blue: 0.07)
-                .ignoresSafeArea()
+            Color(red: 0.12, green: 0.09, blue: 0.07).ignoresSafeArea()
+            IslamicPattern().ignoresSafeArea()
             
-            IslamicPattern()
-                .ignoresSafeArea()
-            
-            // Top header
-            VStack(alignment: .leading, spacing: 4) {
+            // Fixed header + landscape — pinned VStack overlay
+            VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top, spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(hijriDate)
@@ -140,7 +137,6 @@ struct HomeView: View {
                             .font(.system(size: 11, weight: .medium))
                             .tracking(selectedLanguage == "ar" ? 0 : 2)
                             .foregroundColor(.white.opacity(0.5))
-                            .textCase(.uppercase)
                         
                         Text(greetingText)
                             .font(.system(size: 28, weight: .light))
@@ -161,42 +157,51 @@ struct HomeView: View {
                                     )
                             )
                     }
-                    
-                    Spacer()
-                    
-                    // Right column — upgrade icon + mirror box stacked
-                    VStack(alignment: .trailing, spacing: 8) {
-
-                        
-                        if let rhythmState = rhythmStates.first,
-                           let message = engine.mirrorMessage(state: rhythmState, language: selectedLanguage) {
-                            MirrorBoxView(message: message)
-                                .frame(width: 150)
-                        }
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 70)
-                Spacer()
-            }
-            .padding(.bottom, 100)
-            .padding(.top, 20)
-            
-            // Worship grid
-            GeometryReader { geo in
-                ZStack(alignment: .bottom) {
-                    ScrollView(showsIndicators: false) {
-                        LazyVGrid(columns: [
-                            GridItem(.flexible()),
-                            GridItem(.flexible()),
-                            GridItem(.flexible())
-                        ], spacing: 12) {
-                            ForEach(WorshipType.allCases, id: \.self) { worship in
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 8) {
+                                    if let rhythmState = rhythmStates.first,
+                                       let message = engine.mirrorMessage(state: rhythmState, language: selectedLanguage) {
+                                        MirrorBoxView(message: message).frame(width: 150)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 70)
                             
+                            // Landscape lives here — fixed, not scrolling
+                            Image("desert_landscape")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: UIScreen.main.bounds.width, height: 160)
+                                .clipped()
+                                .allowsHitTesting(false)
+                            
+                            Spacer()
+                        }
+                        
+                        GeometryReader { geo in
+                            ZStack(alignment: .bottom) {
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 0.12, green: 0.09, blue: 0.07).opacity(0),
+                                        Color(red: 0.12, green: 0.09, blue: 0.07)
+                                    ],
+                                    startPoint: .bottom,
+                                    endPoint: .top
+                                )
+                                .frame(height: 140)
+                                .allowsHitTesting(false)
+                                ScrollView(showsIndicators: false) {
+                                    LazyVGrid(columns: [
+                                        GridItem(.flexible()),
+                                        GridItem(.flexible()),
+                                        GridItem(.flexible())
+                                    ], spacing: 12) {
+                                        ForEach(WorshipType.allCases, id: \.self) { worship in
                                 let isLogged = engine.loggedTodayByWorship[worship.rawValue] ?? false
                                 let logCount = engine.todayCountByWorship[worship.rawValue] ?? 0
                                 let isOverdue = engine.isOverdue(for: worship)
-                                let wasLoggedBefore = isLogged  // capture before tap
+                                let wasLoggedBefore = isLogged
                                 
                                 WorshipCard(
                                     worship: worship,
@@ -207,39 +212,35 @@ struct HomeView: View {
                                     isFocused: focusDeeds.contains(worship)
                                 ) {
                                     viewModel.log(worshipType: worship, context: context)
-
                                     if worship == .quran && focusDeeds.contains(.quran) {
                                         showQuranSheet = true
                                     } else {
                                         showPostLog(for: worship, wasLoggedBefore: wasLoggedBefore)
                                     }
-                                    
-                                    
-                                    
                                 }
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 100)
-                    }
-                    .padding(.top, geo.size.height * 0.25)
-                    
-                    // Fade overlay
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.12, green: 0.09, blue: 0.07).opacity(0),
-                            Color(red: 0.12, green: 0.09, blue: 0.07)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 140)
-                    .allowsHitTesting(false)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.bottom, geo.size.height * 0.18)
-            }
-            // Progress bar
+                                        }
+                                                        }
+                                                        .padding(.horizontal, 16)
+                                                        .padding(.bottom, 100)
+                                                    }
+                                                    .padding(.top, geo.size.height * 0.45) // was 0.25 — now clears header + landscape
+                                                    
+                                                    LinearGradient(
+                                                        colors: [
+                                                            Color(red: 0.12, green: 0.09, blue: 0.07).opacity(0),
+                                                            Color(red: 0.12, green: 0.09, blue: 0.07)
+                                                        ],
+                                                        startPoint: .top,
+                                                        endPoint: .bottom
+                                                    )
+                                                    .frame(height: 140)
+                                                    .allowsHitTesting(false)
+                                                }
+                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                .padding(.bottom, geo.size.height * 0.18)
+                                            }
+            
+            // Progress bar — pinned
             VStack {
                 Spacer()
                 HabitProgressBar(
@@ -254,10 +255,10 @@ struct HomeView: View {
                     }
                 )
                 .padding(.bottom, 100)
-            }            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                .ignoresSafeArea(edges: .bottom)
+            }
+            .ignoresSafeArea(edges: .bottom)
             
-            // Toast
+            // Toast — pinned
             if showToast, let toast = toastMessage {
                 VStack {
                     Spacer()
@@ -269,6 +270,7 @@ struct HomeView: View {
                 .allowsHitTesting(false)
             }
         }
+        // All modifiers on the ZStack
         .sheet(isPresented: $showRhythmAlert) {
             if let state = rhythmStates.first {
                 RhythmAlertSheet(
@@ -280,70 +282,11 @@ struct HomeView: View {
                 .presentationDetents([.fraction(0.75)])
             }
         }
-        
-        .onChange(of: allLogs.count) { _, _ in
-            guard let state = rhythmStates.first else { return }
-            let levelBefore = state.currentLevel
-            engine.applyLevelDropIfNeeded(state: state)
-            engine.applyLevelUpIfNeeded(state: state)
-            let levelAfter = state.currentLevel
-
-            if levelAfter > levelBefore,
-               let newLevel = DeedLevel(rawValue: levelAfter) {
-                newlyReachedLevel = newLevel
-                showLevelUp = true
-            }
-        }
-        
-        .onAppear {
-            ensureGlobalRhythmStateExists(states: rhythmStates, context: context)
-
-            if let state = rhythmStates.first {
-                let levelBefore = state.currentLevel
-                engine.applyLevelDropIfNeeded(state: state)
-                engine.applyLevelUpIfNeeded(state: state)
-                let levelAfter = state.currentLevel
-
-                if levelAfter > levelBefore,
-                   let newLevel = DeedLevel(rawValue: levelAfter) {
-                    newlyReachedLevel = newLevel
-                    showLevelUp = true
-                }
-            }
-
-            // only check rhythm alerts if level up isn't already showing
-            if !showLevelUp {
-                checkRhythmAlerts()
-            }
-
-            NotificationManager.requestPermission()
-            NotificationManager.cancelToday()
-            let has3Logs = engine.has3Logs
-            if has3Logs && AppReviewManager.shouldRequestReview() {
-                requestReview()
-            }
-
-            NotificationManager.scheduleAll(
-                engine: engine,
-                focusDeeds: focusDeeds,
-                smartNotificationsEnabled: smartNotificationsEnabled,
-                language: selectedLanguage
-            )
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-            
-            NotificationManager.scheduleAll(
-                engine: engine,
-                focusDeeds: focusDeeds,
-                smartNotificationsEnabled: smartNotificationsEnabled,
-                language: selectedLanguage 
-            )
-        }
         .sheet(item: $postLogWorship) { worship in
             PostLogView(
                 worship: worship,
                 insightKey: postLogInsight,
-                globalStreak: postLogCount66,   // ← renamed
+                globalStreak: postLogCount66,
                 totalToday: viewModel.totalDeedsToday(logs: allLogs),
                 selectedLanguage: selectedLanguage,
                 onDismiss: { postLogWorship = nil }
@@ -358,7 +301,6 @@ struct HomeView: View {
             )
             .presentationDetents([.fraction(0.75)])
         }
-
         .sheet(isPresented: $showQuranSheet, onDismiss: {
             showPostLog(for: .quran, wasLoggedBefore: false)
         }) {
@@ -367,7 +309,51 @@ struct HomeView: View {
                 onSave: {}
             )
         }
-        .environment(\.layoutDirection, AppLanguage(rawValue: selectedLanguage)?.layoutDirection ?? LayoutDirection.leftToRight)
+        .onChange(of: allLogs.count) { _, _ in
+            guard let state = rhythmStates.first else { return }
+            let levelBefore = state.currentLevel
+            engine.applyLevelDropIfNeeded(state: state)
+            engine.applyLevelUpIfNeeded(state: state)
+            let levelAfter = state.currentLevel
+            if levelAfter > levelBefore, let newLevel = DeedLevel(rawValue: levelAfter) {
+                newlyReachedLevel = newLevel
+                showLevelUp = true
+            }
+        }
+        .onAppear {
+            ensureGlobalRhythmStateExists(states: rhythmStates, context: context)
+            if let state = rhythmStates.first {
+                let levelBefore = state.currentLevel
+                engine.applyLevelDropIfNeeded(state: state)
+                engine.applyLevelUpIfNeeded(state: state)
+                let levelAfter = state.currentLevel
+                if levelAfter > levelBefore, let newLevel = DeedLevel(rawValue: levelAfter) {
+                    newlyReachedLevel = newLevel
+                    showLevelUp = true
+                }
+            }
+            if !showLevelUp { checkRhythmAlerts() }
+            NotificationManager.requestPermission()
+            NotificationManager.cancelToday()
+            if engine.has3Logs && AppReviewManager.shouldRequestReview() {
+                requestReview()
+            }
+            NotificationManager.scheduleAll(
+                engine: engine,
+                focusDeeds: focusDeeds,
+                smartNotificationsEnabled: smartNotificationsEnabled,
+                language: selectedLanguage
+            )
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            NotificationManager.scheduleAll(
+                engine: engine,
+                focusDeeds: focusDeeds,
+                smartNotificationsEnabled: smartNotificationsEnabled,
+                language: selectedLanguage
+            )
+        }
+        .environment(\.layoutDirection, AppLanguage(rawValue: selectedLanguage)?.layoutDirection ?? .leftToRight)
     }
     }
     
