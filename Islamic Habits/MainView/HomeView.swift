@@ -42,6 +42,17 @@ struct HomeView: View {
         return "\(levelName)  ·  \(dayWord) \(streak)"
     }
     
+    var palmImageName: String {
+        guard let state = rhythmStates.first else { return "palm_tree_level1" }
+        let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        switch level {
+        case .niyyah:    return "palm_tree_level1"
+        case .muraqabah: return "palm_tree_level2"
+        case .istiqamah: return "palm_tree_level3"
+        case .aadah:     return "palm_tree_level4"
+        case .tabiah:    return "palm_tree_level5"
+        }
+    }
     
     var focusDeeds: [WorshipType] {
         focusDeedsRaw
@@ -121,7 +132,7 @@ struct HomeView: View {
     
     var body: some View {
         ZStack {
-            Color(red: 0.12, green: 0.09, blue: 0.07).ignoresSafeArea()
+            appBackground.ignoresSafeArea()
             IslamicPattern().ignoresSafeArea()
             
             // Fixed header + landscape — pinned VStack overlay
@@ -171,11 +182,48 @@ struct HomeView: View {
                             // Landscape lives here — fixed, not scrolling
                             Image("desert_landscape")
                                 .resizable()
-                                .scaledToFill()
+                                .scaledToFit()
                                 .frame(width: UIScreen.main.bounds.width, height: 160)
                                 .clipped()
                                 .allowsHitTesting(false)
-                            
+                                .overlay(
+                                       LinearGradient(
+                                           colors: [
+                                               appBackground.opacity(0),
+                                               appBackground
+                                           ],
+                                           startPoint: .top,
+                                           endPoint: .bottom
+                                       )
+                                       .frame(height: 80),
+                                       alignment: .bottom
+                                   )
+                                .overlay(
+                                     // side vignette
+                                     HStack(spacing: 0) {
+                                         LinearGradient(
+                                             colors: [appBackground, appBackground.opacity(0)],
+                                             startPoint: .leading,
+                                             endPoint: .trailing
+                                         )
+                                         .frame(width: 40)
+                                         Spacer()
+                                         LinearGradient(
+                                             colors: [appBackground.opacity(0), appBackground],
+                                             startPoint: .leading,
+                                             endPoint: .trailing
+                                         )
+                                         .frame(width: 40)
+                                     }
+                                 )
+                                .overlay(
+                                    Image(palmImageName)
+                                           .resizable()
+                                           .scaledToFit()
+                                           .frame(height: 160)
+                                           .offset(y: -30),
+                                       alignment: .bottom
+                                   )
                             Spacer()
                         }
                         
@@ -223,22 +271,19 @@ struct HomeView: View {
                                                         .padding(.horizontal, 16)
                                                         .padding(.bottom, 100)
                                                     }
-                                                    .padding(.top, geo.size.height * 0.45) // was 0.25 — now clears header + landscape
+                                                .padding(.top, 325)
                                                     
-                                                    LinearGradient(
-                                                        colors: [
-                                                            Color(red: 0.12, green: 0.09, blue: 0.07).opacity(0),
-                                                            Color(red: 0.12, green: 0.09, blue: 0.07)
-                                                        ],
-                                                        startPoint: .top,
-                                                        endPoint: .bottom
-                                                    )
+                                LinearGradient(
+                                    colors: [appBackground.opacity(0), appBackground],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
                                                     .frame(height: 140)
                                                     .allowsHitTesting(false)
                                                 }
                                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                .padding(.bottom, geo.size.height * 0.18)
-                                            }
+                           
+                            .padding(.bottom, geo.size.height * 0.22)                                            }
             
             // Progress bar — pinned
             VStack {
@@ -314,6 +359,13 @@ struct HomeView: View {
             let levelBefore = state.currentLevel
             engine.applyLevelDropIfNeeded(state: state)
             engine.applyLevelUpIfNeeded(state: state)
+            
+            // Immediate level-up if 100% reached today
+            let percentage = engine.globalDecayedPercentage(state: state)
+            if percentage >= 100 {
+                engine.applyLevelUpIfNeeded(state: state)
+            }
+            
             let levelAfter = state.currentLevel
             if levelAfter > levelBefore, let newLevel = DeedLevel(rawValue: levelAfter) {
                 newlyReachedLevel = newLevel
@@ -427,6 +479,7 @@ struct HomeView: View {
                                         lineWidth: isFocused ? 1.5 : isOverdue ? 1.0 : 0.5
                                     )
                             )
+                        
                     )
                     .scaleEffect(isPressed ? 0.95 : 1.0)
                     .shadow(

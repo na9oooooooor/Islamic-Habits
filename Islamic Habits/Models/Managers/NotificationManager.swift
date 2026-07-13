@@ -10,29 +10,32 @@ struct NotificationManager {
         }
     }
 
-    // Schedule all notifications for today
     static func scheduleAll(
         engine: DeedEngine,
         focusDeeds: [WorshipType],
         smartNotificationsEnabled: Bool,
         language: String
-
     ) {
         guard smartNotificationsEnabled else {
             cancelAll()
             return
         }
 
-        // Cancel existing to reschedule fresh
         cancelAll()
 
-        // Type 1 — General daily reminder
-        scheduleGeneral(hour: engine.averageLogHour, language: language)
+        // Only schedule general reminder if nothing logged today
+        let totalToday = engine.loggedTodayByWorship.values.reduce(0) { $0 + ($1 ? 1 : 0) }
+        if totalToday == 0 {
+            scheduleGeneral(hour: engine.averageLogHour, language: language)
+        }
 
-        // Type 2 — Per focus deed
+        // Only schedule focus deed reminder if that specific deed not logged today
         for worship in focusDeeds {
-            let hour = engine.averageLogHour(for: worship)
-            scheduleFocusDeed(worship: worship, hour: hour, language: language)
+            let isAlreadyLogged = engine.loggedTodayByWorship[worship.rawValue] ?? false
+            if !isAlreadyLogged {
+                let hour = engine.averageLogHour(for: worship)
+                scheduleFocusDeed(worship: worship, hour: hour, language: language)
+            }
         }
     }
 

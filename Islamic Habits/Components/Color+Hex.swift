@@ -11,3 +11,4 @@ extension Color {
         self.init(red: r, green: g, blue: b)
     }
 }
+let appBackground = Color(red: 0.125, green: 0.082, blue: 0.059)

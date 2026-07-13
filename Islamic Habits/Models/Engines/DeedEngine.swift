@@ -139,8 +139,21 @@ struct DeedEngine {
         let streak = globalEffectiveStreak(state: state)
         let suggestedLevel = DeedLevel.from(streak: streak)
         
-        guard suggestedLevel.rawValue > state.currentLevel else { return }
-        state.currentLevel = suggestedLevel.rawValue
+        // Normal streak-based upgrade
+        if suggestedLevel.rawValue > state.currentLevel {
+            state.currentLevel = suggestedLevel.rawValue
+            return
+        }
+        
+        // Exception: if base percentage hits 100% today, upgrade immediately
+        let percentage = globalBasePercentage(state: state)
+        if percentage >= 100 {
+            let currentLevel = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+            if currentLevel != .tabiah {
+                let nextLevel = DeedLevel(rawValue: state.currentLevel + 1) ?? .tabiah
+                state.currentLevel = nextLevel.rawValue
+            }
+        }
     }
     
     func last66DaysLogged(for worshipType: WorshipType) -> [Date: Bool] {
