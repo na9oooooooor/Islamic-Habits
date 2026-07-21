@@ -14,7 +14,7 @@ struct CalendarView: View {
     
     var groupedLogs: [Date: [DeedLog]] {
         Dictionary(grouping: allLogs) { log in
-            islamicStartOfDay(for: log.loggedAt)
+            Calendar.current.startOfDay(for: log.loggedAt)
         }
     }
     
@@ -204,11 +204,10 @@ struct CalendarGrid: View {
                 
                 ForEach(Array(daysInMonth.enumerated()), id: \.offset) { _, date in
                     if let date = date {
-                        let startOfDate = islamicStartOfDay(for: date)
+                        let startOfDate = Calendar.current.startOfDay(for: date)
                         let hasLog = loggedDays.contains(startOfDate)
                         let isSelected = selectedDay?.date == startOfDate
-                        let isToday = islamicStartOfDay(for: date) == islamicToday
-                        
+                        let isToday = startOfDate == Calendar.current.startOfDay(for: islamicToday)
                         Button {
                             selectedDay = IdentifiableDate(date: date)
                         } label: {

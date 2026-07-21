@@ -56,9 +56,29 @@ struct DeedEngine {
 
     // MARK: - Streak & Level
 
+    func computedCurrentLevel() -> DeedLevel {
+        // Walk all logs, count active days from the very beginning
+        let calendar = Calendar.current
+        guard let firstLog = logs.min(by: { $0.loggedAt < $1.loggedAt }) else { return .niyyah }
+        
+        let firstDay = islamicStartOfDay(for: firstLog.loggedAt)
+        var activeDays = 0
+        var current = firstDay
+        
+        while current <= startOfIslamicDay {
+            let next = calendar.date(byAdding: .day, value: 1, to: current)!
+            let hasLog = logs.contains { $0.loggedAt >= current && $0.loggedAt < next }
+            if hasLog { activeDays += 1 }
+            current = next
+        }
+        
+        return DeedLevel.from(streak: activeDays)
+    }
+
     func globalEffectiveStreak(state: GlobalRhythmState) -> Int {
         let calendar = Calendar.current
-        let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        // Use computed level — NOT stored level — for grace days
+        let level = computedCurrentLevel()
         let graceDays = level.graceDays
         var periodStart = startOfIslamicDay
         var streak = 0
@@ -66,19 +86,17 @@ struct DeedEngine {
 
         while true {
             let periodEnd = calendar.date(byAdding: .day, value: 1, to: periodStart)!
-            let windowStart = periodStart
-
             let logCount = logs.filter {
-                $0.loggedAt >= windowStart &&
-                $0.loggedAt < periodEnd
+                $0.loggedAt >= periodStart && $0.loggedAt < periodEnd
             }.count
 
             let isToday = periodStart == startOfIslamicDay
-            
+
             if logCount >= dailyGoal {
                 streak += 1
                 consecutiveMisses = 0
             } else if isToday {
+                // don't penalize today
             } else {
                 consecutiveMisses += 1
                 if consecutiveMisses > graceDays { break }
@@ -129,29 +147,33 @@ struct DeedEngine {
     }
     
     func applyLevelDropIfNeeded(state: GlobalRhythmState) {
+        // Sync stored level with reality first
+        let computed = computedCurrentLevel()
+        state.currentLevel = max(state.currentLevel, computed.rawValue) // never drop below what logs justify
+        
         guard globalShouldDropLevel(state: state) else { return }
         let currentLevel = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
-        let newLevel = droppedLevel(from: currentLevel)
-        state.currentLevel = newLevel.rawValue
+        state.currentLevel = droppedLevel(from: currentLevel).rawValue
     }
-    
+
     func applyLevelUpIfNeeded(state: GlobalRhythmState) {
+        let computed = computedCurrentLevel()
         let streak = globalEffectiveStreak(state: state)
-        let suggestedLevel = DeedLevel.from(streak: streak)
+        let streakLevel = DeedLevel.from(streak: streak)
         
-        // Normal streak-based upgrade
-        if suggestedLevel.rawValue > state.currentLevel {
-            state.currentLevel = suggestedLevel.rawValue
+        // Take the higher of computed vs streak-based
+        let bestLevel = max(computed.rawValue, streakLevel.rawValue)
+        if bestLevel > state.currentLevel {
+            state.currentLevel = bestLevel
             return
         }
         
-        // Exception: if base percentage hits 100% today, upgrade immediately
+        // Immediate level-up at 100%
         let percentage = globalBasePercentage(state: state)
         if percentage >= 100 {
             let currentLevel = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
             if currentLevel != .tabiah {
-                let nextLevel = DeedLevel(rawValue: state.currentLevel + 1) ?? .tabiah
-                state.currentLevel = nextLevel.rawValue
+                state.currentLevel = min(state.currentLevel + 1, 5)
             }
         }
     }

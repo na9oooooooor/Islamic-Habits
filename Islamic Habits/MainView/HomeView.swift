@@ -43,8 +43,7 @@ struct HomeView: View {
     }
     
     var palmImageName: String {
-        guard let state = rhythmStates.first else { return "palm_tree_level1" }
-        let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        let level = engine.computedCurrentLevel()
         switch level {
         case .niyyah:    return "palm_tree_level1"
         case .muraqabah: return "palm_tree_level2"
@@ -222,7 +221,7 @@ struct HomeView: View {
                                            .resizable()
                                            .scaledToFit()
                                            .frame(height: 160)
-                                           .offset(y: -30),
+                                           .offset(y: -35),
                                        alignment: .bottom
                                    )
                 
@@ -233,8 +232,8 @@ struct HomeView: View {
                             ZStack(alignment: .bottom) {
                                 LinearGradient(
                                     colors: [
-                                        Color(red: 0.12, green: 0.09, blue: 0.07).opacity(0),
-                                        Color(red: 0.12, green: 0.09, blue: 0.07)
+                                        Color(appBackground).opacity(0),
+                                        Color(appBackground)
                                     ],
                                     startPoint: .bottom,
                                     endPoint: .top
@@ -375,6 +374,7 @@ struct HomeView: View {
             }
         }
         .onAppear {
+            print(engine.computedCurrentLevel())
             ensureGlobalRhythmStateExists(states: rhythmStates, context: context)
             if let state = rhythmStates.first {
                 let levelBefore = state.currentLevel

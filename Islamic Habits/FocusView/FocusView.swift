@@ -121,9 +121,7 @@ struct FocusView: View {
                     .animation(.easeInOut, value: currentPage)                }
             }
         }
-        .onAppear {
-            print("QuranLogs count: \(quranLogs.count)")
-        }
+
         .ignoresSafeArea(edges: .bottom)
         .sheet(isPresented: $showPicker) {
             FocusDeedPickerView(
