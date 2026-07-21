@@ -85,11 +85,13 @@ struct LevelUpView: View {
 
                                 Spacer()
 
-                                if isCurrent {
-                                    Text(level.streakRange(language: selectedLanguage))
-                                        .font(.system(size: 11))
-                                        .foregroundColor(gold.opacity(0.5))
-                                }
+                                Text(level.streakRange(language: selectedLanguage))
+                                    .font(.system(size: 11))
+                                    .foregroundColor(
+                                        isCurrent ? gold.opacity(0.5) :
+                                        isReached ? gold.opacity(0.3) :
+                                        gold.opacity(0.12)
+                                    )
                             }
                             .padding(.vertical, isCurrent ? 12 : 6)
                             .padding(.horizontal, 16)

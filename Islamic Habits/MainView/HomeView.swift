@@ -26,7 +26,7 @@ struct HomeView: View {
     @State private var showToast = false
     @State private var toastMessage: MirrorMessage? = nil
     @State private var showRhythmAlertIsLevelDrop: Bool = false
-
+    @State private var showLevelInfo = false
     
     
     var engine: DeedEngine {
@@ -34,12 +34,10 @@ struct HomeView: View {
     }
     
     var levelText: String {
-        guard let state = rhythmStates.first else { return "" }
-        let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        let level = engine.computedCurrentLevel()
         let levelName = level.localizedName(language: selectedLanguage)
-        let streak = engine.globalEffectiveStreak(state: state)
-        let dayWord = localizedString("quran.card.day", language: selectedLanguage)
-        return "\(levelName)  ·  \(dayWord) \(streak)"
+        let days = engine.localizedDayCount(engine.totalActiveDays, language: selectedLanguage)
+        return "\(levelName)  ·  \(days)"
     }
     
     var palmImageName: String {
@@ -153,19 +151,23 @@ struct HomeView: View {
                             .italic()
                             .foregroundColor(.white.opacity(0.9))
                         
-                        Text(levelText)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.9))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 6)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.12))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .stroke(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.2), lineWidth: 0.5)
-                                    )
-                            )
+                        Button {
+                            showLevelInfo = true
+                        } label: {
+                            Text(levelText)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.9))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.12))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .stroke(Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.2), lineWidth: 0.5)
+                                        )
+                                )
+                        }
                     }
                                 Spacer()
                                 VStack(alignment: .trailing, spacing: 8) {
@@ -184,6 +186,7 @@ struct HomeView: View {
                                 .scaledToFit()
                                 .frame(width: UIScreen.main.bounds.width, height: 160)
                                 .clipped()
+
                                 .allowsHitTesting(false)
                                 .overlay(
                                        LinearGradient(
@@ -224,6 +227,7 @@ struct HomeView: View {
                                            .offset(y: -35),
                                        alignment: .bottom
                                    )
+                                .environment(\.layoutDirection, .leftToRight)
                 
                             Spacer()
                         }
@@ -316,7 +320,14 @@ struct HomeView: View {
                 .allowsHitTesting(false)
             }
         }
-        // All modifiers on the ZStack
+        .sheet(isPresented: $showLevelInfo) {
+            LevelUpView(
+                newLevel: engine.computedCurrentLevel(),
+                selectedLanguage: selectedLanguage,
+                onDismiss: { showLevelInfo = false }
+            )
+            .presentationDetents([.fraction(0.75)])
+        }
         .sheet(isPresented: $showRhythmAlert) {
             if let state = rhythmStates.first {
                 RhythmAlertSheet(

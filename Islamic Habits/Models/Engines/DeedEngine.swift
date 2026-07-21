@@ -9,7 +9,18 @@ struct DeedEngine {
         logs.filter { $0.loggedAt >= startOfIslamicDay && $0.loggedAt < startOfIslamicTomorrow }
     }
     
-    
+    func localizedDayCount(_ count: Int, language: String) -> String {
+        switch language {
+        case "ar":
+            if count == 1 { return "يوم واحد" }
+            else if count >= 3 && count <= 10 { return "\(count) أيام" }
+            else { return "\(count) يوم" } // 11+ uses singular in Arabic
+        case "th":
+            return "\(count) วัน"
+        default:
+            return count == 1 ? "1 day" : "\(count) days"
+        }
+    }
     
     // MARK: - Rhythm
     var rhythmLast66Days: Int {
@@ -21,6 +32,13 @@ struct DeedEngine {
         return Int(round((Double(activeDays) / habitEstablishedAt) * 100))
     }
     
+    var totalActiveDays: Int {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: logs) {
+            calendar.startOfDay(for: $0.loggedAt)
+        }
+        return grouped.filter { $0.value.count >= dailyGoal }.count
+    }
     // MARK: - Commitment
     
 
@@ -57,20 +75,15 @@ struct DeedEngine {
     // MARK: - Streak & Level
 
     func computedCurrentLevel() -> DeedLevel {
-        // Walk all logs, count active days from the very beginning
         let calendar = Calendar.current
-        guard let firstLog = logs.min(by: { $0.loggedAt < $1.loggedAt }) else { return .niyyah }
         
-        let firstDay = islamicStartOfDay(for: firstLog.loggedAt)
-        var activeDays = 0
-        var current = firstDay
-        
-        while current <= startOfIslamicDay {
-            let next = calendar.date(byAdding: .day, value: 1, to: current)!
-            let hasLog = logs.contains { $0.loggedAt >= current && $0.loggedAt < next }
-            if hasLog { activeDays += 1 }
-            current = next
+        // Group all logs by calendar day
+        let grouped = Dictionary(grouping: logs) {
+            calendar.startOfDay(for: $0.loggedAt)
         }
+        
+        // Count days where at least dailyGoal logs exist
+        let activeDays = grouped.filter { $0.value.count >= dailyGoal }.count
         
         return DeedLevel.from(streak: activeDays)
     }
