@@ -34,9 +34,9 @@ struct HomeView: View {
     }
     
     var levelText: String {
-        let level = engine.computedCurrentLevel()
-        let levelName = level.localizedName(language: selectedLanguage)
-        let days = engine.localizedDayCount(engine.totalActiveDays, language: selectedLanguage)
+        let result = engine.computedLevelAndDays()
+        let levelName = result.level.localizedName(language: selectedLanguage)
+        let days = engine.localizedDayCount(result.days, language: selectedLanguage)
         return "\(levelName)  ·  \(days)"
     }
     
@@ -117,11 +117,8 @@ struct HomeView: View {
                 }
             }
         case .levelUp:
-            if let state = rhythmStates.first {
-                let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
-                newlyReachedLevel = level
-                showLevelUp = true
-            }
+            newlyReachedLevel = engine.computedCurrentLevel()
+            showLevelUp = true
         default:
             break
         }
@@ -368,47 +365,39 @@ struct HomeView: View {
         }
         .onChange(of: allLogs.count) { _, _ in
             guard let state = rhythmStates.first else { return }
-            let levelBefore = state.currentLevel
-            engine.applyLevelDropIfNeeded(state: state)
-            engine.applyLevelUpIfNeeded(state: state)
+            let computed = engine.computedCurrentLevel()
+            print("computed: \(computed.rawValue), stored: \(state.currentLevel)")
             
-            // Immediate level-up if 100% reached today
-            let percentage = engine.globalDecayedPercentage(state: state)
-            if percentage >= 100 {
-                engine.applyLevelUpIfNeeded(state: state)
-            }
-            
-            let levelAfter = state.currentLevel
-            if levelAfter > levelBefore, let newLevel = DeedLevel(rawValue: levelAfter) {
-                newlyReachedLevel = newLevel
+            if computed.rawValue > state.currentLevel {
+                state.currentLevel = computed.rawValue
+                newlyReachedLevel = computed
                 showLevelUp = true
+            } else if computed.rawValue < state.currentLevel {
+                state.currentLevel = computed.rawValue
+                showRhythmAlertIsLevelDrop = true
+                showRhythmAlert = true
             }
         }
         .onAppear {
-            print(engine.computedCurrentLevel())
             ensureGlobalRhythmStateExists(states: rhythmStates, context: context)
+            
             if let state = rhythmStates.first {
-                let levelBefore = state.currentLevel
-                engine.applyLevelDropIfNeeded(state: state)
-                engine.applyLevelUpIfNeeded(state: state)
-                let levelAfter = state.currentLevel
-                if levelAfter > levelBefore, let newLevel = DeedLevel(rawValue: levelAfter) {
-                    newlyReachedLevel = newLevel
+                let computed = engine.computedCurrentLevel()
+                
+                if computed.rawValue > state.currentLevel {
+                    state.currentLevel = computed.rawValue
+                    newlyReachedLevel = computed
                     showLevelUp = true
+                } else if computed.rawValue < state.currentLevel {
+                    state.currentLevel = computed.rawValue
+                    if lastRhythmAlertDate != todayString() {
+                        lastRhythmAlertDate = todayString()
+                        showRhythmAlertIsLevelDrop = true
+                        showRhythmAlert = true
+                    }
                 }
             }
-            if !showLevelUp { checkRhythmAlerts() }
-            NotificationManager.requestPermission()
-            NotificationManager.cancelToday()
-            if engine.has3Logs && AppReviewManager.shouldRequestReview() {
-                requestReview()
-            }
-            NotificationManager.scheduleAll(
-                engine: engine,
-                focusDeeds: focusDeeds,
-                smartNotificationsEnabled: smartNotificationsEnabled,
-                language: selectedLanguage
-            )
+            // ... rest of onAppear
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
             NotificationManager.scheduleAll(

@@ -41,20 +41,20 @@ struct DeedEngine {
     }
     // MARK: - Commitment
     
-
+    
     
     var readyForNextCommitment: Bool {
         rhythmLast66Days >= 70
     }
     
     var has3Logs: Bool {
-    
+        
         let recentLogs = logs.filter { $0.loggedAt <= startOfIslamicTomorrow }
         let grouped = Dictionary(grouping: recentLogs) { islamicStartOfDay(for: $0.loggedAt) }
         let activeDays = grouped.filter { $0.value.count >= dailyGoal }.count
-         if activeDays >= 3 {
+        if activeDays >= 3 {
             return true
-         } else {return false}
+        } else {return false}
     }
     
     func countLast66Days(for worshipType: WorshipType) -> Int {
@@ -70,24 +70,59 @@ struct DeedEngine {
         let lastLogIslamicDay = islamicStartOfDay(for: lastLog.loggedAt)
         return Calendar.current.dateComponents([.day], from: lastLogIslamicDay, to: startOfIslamicDay).day
     }
-
-
+    
+    
     // MARK: - Streak & Level
-
+    
     func computedCurrentLevel() -> DeedLevel {
+        computedLevelAndDays().level
+    }
+    
+    func computedLevelAndDays() -> (level: DeedLevel, days: Int) {
         let calendar = Calendar.current
+        guard let firstLog = logs.min(by: { $0.loggedAt < $1.loggedAt }) else { return (.niyyah, 0) }
         
-        // Group all logs by calendar day
-        let grouped = Dictionary(grouping: logs) {
-            calendar.startOfDay(for: $0.loggedAt)
+        let grouped = Dictionary(grouping: logs) { islamicStartOfDay(for: $0.loggedAt) }
+        let activeDaySet = Set(grouped.filter { $0.value.count >= dailyGoal }.keys)
+        
+        var currentLevel: DeedLevel = .niyyah
+        var effectiveDays = 0
+        var consecutiveMisses = 0
+        
+        var day = islamicStartOfDay(for: firstLog.loggedAt)
+        
+        while day <= startOfIslamicDay {
+            let isToday = day == startOfIslamicDay
+            
+            if activeDaySet.contains(day) {
+                effectiveDays += 1
+                consecutiveMisses = 0
+                let suggested = DeedLevel.from(streak: effectiveDays)
+                if suggested.rawValue > currentLevel.rawValue {
+                    currentLevel = suggested
+                }
+            } else if isToday {
+                // don't penalize today
+            } else {
+                consecutiveMisses += 1
+                if consecutiveMisses > currentLevel.graceDays {
+                    if currentLevel == .niyyah {
+                        // Level 1: gap breaks the count itself
+                        effectiveDays = 0
+                    } else {
+                        currentLevel = droppedLevel(from: currentLevel)
+                        effectiveDays = max(0, currentLevel.progressRange.lowerBound - 1)
+                    }
+                    consecutiveMisses = 0
+                }
+            }
+            
+            day = calendar.date(byAdding: .day, value: 1, to: day)!
         }
         
-        // Count days where at least dailyGoal logs exist
-        let activeDays = grouped.filter { $0.value.count >= dailyGoal }.count
-        
-        return DeedLevel.from(streak: activeDays)
+        return (currentLevel, effectiveDays)
     }
-
+    
     func globalEffectiveStreak(state: GlobalRhythmState) -> Int {
         let calendar = Calendar.current
         // Use computed level — NOT stored level — for grace days
@@ -96,15 +131,15 @@ struct DeedEngine {
         var periodStart = startOfIslamicDay
         var streak = 0
         var consecutiveMisses = 0
-
+        
         while true {
             let periodEnd = calendar.date(byAdding: .day, value: 1, to: periodStart)!
             let logCount = logs.filter {
                 $0.loggedAt >= periodStart && $0.loggedAt < periodEnd
             }.count
-
+            
             let isToday = periodStart == startOfIslamicDay
-
+            
             if logCount >= dailyGoal {
                 streak += 1
                 consecutiveMisses = 0
@@ -114,35 +149,32 @@ struct DeedEngine {
                 consecutiveMisses += 1
                 if consecutiveMisses > graceDays { break }
             }
-
+            
             periodStart = calendar.date(byAdding: .day, value: -1, to: periodStart)!
         }
         return streak
     }
-
+    
     func globalBasePercentage(state: GlobalRhythmState) -> Double {
-        let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
-        let streak = globalEffectiveStreak(state: state)
-        return level.progress(streak: streak) * 100
+        let result = computedLevelAndDays()
+        return result.level.progress(streak: result.days) * 100
     }
-
-
-
+    
+    
+    
     func globalDaysPastGrace(state: GlobalRhythmState) -> Int {
         guard let daysSince = globalDaysSinceLastLog() else { return 0 }
-        let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        let level = computedCurrentLevel()
         let graceDays = level.graceDays
         let completedMissedDays = max(0, daysSince - 1)
         return max(0, completedMissedDays - graceDays)
     }
     
     func globalDecayedPercentage(state: GlobalRhythmState) -> Double {
-        let level = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        let level = computedCurrentLevel()
         let basePercentage = globalBasePercentage(state: state)
         let daysPastGrace = globalDaysPastGrace(state: state)
-
         guard daysPastGrace > 0 else { return basePercentage }
-
         var result = basePercentage
         for _ in 0..<daysPastGrace {
             result -= result * level.decayRate
@@ -159,16 +191,12 @@ struct DeedEngine {
         return DeedLevel(rawValue: newRaw) ?? .niyyah
     }
     
-    func applyLevelDropIfNeeded(state: GlobalRhythmState) {
-        // Sync stored level with reality first
-        let computed = computedCurrentLevel()
-        state.currentLevel = max(state.currentLevel, computed.rawValue) // never drop below what logs justify
-        
-        guard globalShouldDropLevel(state: state) else { return }
-        let currentLevel = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
-        state.currentLevel = droppedLevel(from: currentLevel).rawValue
+    
+    
+    func shouldShowDropAlert(state: GlobalRhythmState) -> Bool {
+        return globalDecayedPercentage(state: state) <= DeedLevel.rhythmDecayThreshold
     }
-
+    
     func applyLevelUpIfNeeded(state: GlobalRhythmState) {
         let computed = computedCurrentLevel()
         let streak = globalEffectiveStreak(state: state)
@@ -207,18 +235,18 @@ struct DeedEngine {
                 $0.loggedAt < dayEnd
             }
             
-            result[midnightDay] = hasLog  // store with midnight key
+            result[midnightDay] = hasLog
         }
         
         return result
     }
     
     func mirrorMessage(state: GlobalRhythmState, language: String) -> MirrorMessage? {
-        let currentLevel = DeedLevel(rawValue: state.currentLevel) ?? .niyyah
+        let currentLevel = computedCurrentLevel()
         let streak = globalEffectiveStreak(state: state)
         let daysPastGrace = globalDaysPastGrace(state: state)
         let randomDeed = WorshipType.allCases.randomElement()!
-
+        
         // 1. ALERT — level should drop
         if globalShouldDropLevel(state: state) {
             return MirrorMessage(
@@ -228,7 +256,7 @@ struct DeedEngine {
                 subtitle: localizedString("mirror.streak.broken", language: language)
             )
         }
-
+        
         // 2. ALERT — past grace but not yet at drop threshold
         if daysPastGrace > 0 {
             return MirrorMessage(
@@ -238,7 +266,7 @@ struct DeedEngine {
                 subtitle: localizedString("mirror.grace.last", language: language)
             )
         }
-
+        
         // 3. NUDGE — daily goal not met today
         if todayLogs.count < dailyGoal {
             return MirrorMessage(
@@ -248,7 +276,7 @@ struct DeedEngine {
                 subtitle: localizedString("mirror.not.logged", language: language)
             )
         }
-
+        
         // 4. PROGRESS — streak milestone (every 7 days)
         if streak > 0 && streak % 7 == 0 {
             return MirrorMessage(
@@ -258,7 +286,7 @@ struct DeedEngine {
                 subtitle: "\(streak) \(localizedString("focus.streak.healthy", language: language)). \(localizedString("mirror.angels", language: language))"
             )
         }
-
+        
         // 5. LEVEL UP — within 5 days of next level
         if currentLevel != .tabiah {
             let daysLeft = currentLevel.progressRange.upperBound - streak
@@ -272,17 +300,17 @@ struct DeedEngine {
                 )
             }
         }
-
+        
         // 6. QUOTE — random, three options
         let option = Int.random(in: 1...3)
         switch option {
         case 1:
             let percentage = Int(globalDecayedPercentage(state: state))
             let message = percentage == 0
-                ? localizedString("mirror.journey.start", language: language)
-                : percentage < 50
-                ? "\(percentage)% \(localizedString("mirror.habit.building", language: language))"
-                : "\(percentage)% \(localizedString("mirror.habit.progress", language: language))"
+            ? localizedString("mirror.journey.start", language: language)
+            : percentage < 50
+            ? "\(percentage)% \(localizedString("mirror.habit.building", language: language))"
+            : "\(percentage)% \(localizedString("mirror.habit.progress", language: language))"
             return MirrorMessage(
                 priority: .quote,
                 icon: "chart.bar",
@@ -321,7 +349,7 @@ struct DeedEngine {
         let hours = recentLogs.map { calendar.component(.hour, from: $0.loggedAt) }
         return hours.reduce(0, +) / hours.count
     }
-
+    
     func averageLogHour(for worshipType: WorshipType) -> Int {
         let calendar = Calendar.current
         let sevenDaysAgo = calendar.date(byAdding: .day, value: -7, to: Date())!
@@ -343,21 +371,21 @@ struct DeedEngine {
         ayahTo: Int
     ) -> Int {
         let surahs = QuranData.surahs
-
+        
         // Guard: from must come before to
         guard surahFromNumber <= surahToNumber else { return 0 }
-
+        
         // Case 1: same surah
         if surahFromNumber == surahToNumber {
             return max(0, ayahTo - ayahFrom + 1)
         }
-
+        
         // Case 2: multiple surahs
         var total = 0
-
+        
         for surahNumber in surahFromNumber...surahToNumber {
             guard let surah = surahs.first(where: { $0.number == surahNumber }) else { continue }
-
+            
             if surahNumber == surahFromNumber {
                 total += surah.ayahs - ayahFrom + 1
             } else if surahNumber == surahToNumber {
@@ -366,7 +394,7 @@ struct DeedEngine {
                 total += surah.ayahs
             }
         }
-
+        
         return total
     }
     
@@ -379,7 +407,7 @@ struct DeedEngine {
         }
         return result
     }
-
+    
     var todayCountByWorship: [String: Int] {
         var result: [String: Int] = [:]
         for worship in WorshipType.allCases {
@@ -393,7 +421,7 @@ struct DeedEngine {
         guard let lastLog = worshipLogs.max(by: { $0.loggedAt < $1.loggedAt }) else { return nil }
         return Calendar.current.dateComponents([.day], from: lastLog.loggedAt, to: Date()).day
     }
-
+    
     func isOverdue(for worshipType: WorshipType) -> Bool {
         guard let days = daysSinceLastLog(for: worshipType) else { return false }
         switch worshipType.cadence {
@@ -409,28 +437,28 @@ struct DeedEngine {
         let unit = worshipType.streakUnit
         var periodStart = startOfIslamicDay
         var streak = 0
-
+        
         while true {
             let periodEnd = calendar.date(byAdding: .day, value: 1, to: periodStart)!
             let windowStart = calendar.date(byAdding: .day, value: -(unit - 1), to: periodStart)!
-
+            
             let hasLog = logs.contains {
                 $0.worshipType == worshipType.rawValue &&
                 $0.loggedAt >= windowStart &&
                 $0.loggedAt < periodEnd
             }
-
+            
             guard hasLog else { break }
             streak += 1
             periodStart = calendar.date(byAdding: .day, value: -unit, to: periodStart)!
         }
         return streak
     }
-
+    
     func level(for worshipType: WorshipType) -> DeedLevel {
         DeedLevel.from(streak: rawStreak(for: worshipType))
     }
-
+    
     func streak(for worshipType: WorshipType) -> Int {
         let calendar = Calendar.current
         let unit = worshipType.streakUnit
@@ -438,17 +466,17 @@ struct DeedEngine {
         var periodStart = startOfIslamicDay
         var streak = 0
         var consecutiveMisses = 0
-
+        
         while true {
             let periodEnd = calendar.date(byAdding: .day, value: 1, to: periodStart)!
             let windowStart = calendar.date(byAdding: .day, value: -(unit - 1), to: periodStart)!
-
+            
             let hasLog = logs.contains {
                 $0.worshipType == worshipType.rawValue &&
                 $0.loggedAt >= windowStart &&
                 $0.loggedAt < periodEnd
             }
-
+            
             if hasLog {
                 streak += 1
                 consecutiveMisses = 0
@@ -456,12 +484,12 @@ struct DeedEngine {
                 consecutiveMisses += 1
                 if consecutiveMisses > graceDays { break }
             }
-
+            
             periodStart = calendar.date(byAdding: .day, value: -unit, to: periodStart)!
         }
         return streak
     }
-
+    
     func effectiveLevel(for worshipType: WorshipType) -> DeedLevel {
         let currentLevel = level(for: worshipType)
         let used = graceDaysUsed(for: worshipType)
@@ -472,38 +500,44 @@ struct DeedEngine {
         }
         return currentLevel
     }
-
+    
     func graceDaysUsed(for worshipType: WorshipType) -> Int {
         let calendar = Calendar.current
         let unit = worshipType.streakUnit
         var periodStart = startOfIslamicDay
         var used = 0
         let gracePeriods = level(for: worshipType).graceDays
-
+        
         while true {
             let periodEnd = calendar.date(byAdding: .day, value: 1, to: periodStart)!
             let windowStart = calendar.date(byAdding: .day, value: -(unit - 1), to: periodStart)!
-
+            
             let hasLog = logs.contains {
                 $0.worshipType == worshipType.rawValue &&
                 $0.loggedAt >= windowStart &&
                 $0.loggedAt < periodEnd
             }
-
+            
             if hasLog { break }
             used += 1
             if used > gracePeriods { break }
-
+            
             periodStart = calendar.date(byAdding: .day, value: -unit, to: periodStart)!
         }
         return used
     }
-
+    
     func streakStatus(for worshipType: WorshipType) -> StreakStatus {
         let used = graceDaysUsed(for: worshipType)
         let total = level(for: worshipType).graceDays
         if used == 0 { return .healthy }
         if used <= total { return .warning(remaining: total - used) }
         return .broken
+    }
+    
+}
+extension DeedLevel: Comparable {
+    static func < (lhs: DeedLevel, rhs: DeedLevel) -> Bool {
+        lhs.rawValue < rhs.rawValue
     }
 }
