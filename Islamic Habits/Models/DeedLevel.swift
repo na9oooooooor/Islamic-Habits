@@ -109,7 +109,7 @@ enum DeedLevel: Int, CaseIterable {
     
     var graceDays: Int {
         switch self {
-        case .niyyah:    return 0
+        case .niyyah:    return 1
         case .muraqabah: return 2
         case .istiqamah: return 2
         case .aadah:     return 4
