@@ -14,7 +14,7 @@ struct CalendarView: View {
     
     var groupedLogs: [Date: [DeedLog]] {
         Dictionary(grouping: allLogs) { log in
-            Calendar.current.startOfDay(for: log.loggedAt)
+            trackingCalendarDate(for: log.loggedAt)
         }
     }
     
@@ -36,7 +36,7 @@ struct CalendarView: View {
                             month: displayedMonth,
                             loggedDays: Set(groupedLogs.keys),
                             selectedLanguage: selectedLanguage,
-                            islamicToday: startOfIslamicDay,
+                            islamicToday: startOfTrackingDay,
                             onPreviousMonth: {
                                 displayedMonth = Calendar.current.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
                             },
@@ -101,9 +101,13 @@ struct CalendarView: View {
                 }
                 .onChange(of: selectedDay) { _, newDay in
                     guard let day = newDay else { return }
-                    let islamicDay = islamicStartOfDay(for: day.date)
+
+                    let calendarDay = Calendar.current.startOfDay(
+                        for: day.date
+                    )
+
                     withAnimation {
-                        proxy.scrollTo(islamicDay, anchor: .top)
+                        proxy.scrollTo(calendarDay, anchor: .top)
                     }
                 }
                 .sheet(isPresented: $addLogDay) {
@@ -244,7 +248,7 @@ struct CalendarGrid: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 44)
                         }
-                        .disabled(islamicStartOfDay(for: date) > startOfIslamicDay)
+                        .disabled(trackingDayStart(for: date) > startOfTrackingDay)
                         
                     } else {
                         RoundedRectangle(cornerRadius: 4)
@@ -268,7 +272,8 @@ struct DaySection: View {
     let logs: [DeedLog]
     let selectedLanguage: String
     let isHighlighted: Bool
-    
+    @Query private var quranLogs: [QuranLog]
+
     @Environment(\.modelContext) private var modelContext
     var formattedDay: String {
         let formatter = DateFormatter()
@@ -303,8 +308,43 @@ struct DaySection: View {
                     
                     
                     Button {
+                        if log.worshipType == WorshipType.quran.rawValue {
+
+                            let matchingQuranLog = quranLogs
+                                .filter {
+                                    abs(
+                                        $0.loggedAt.timeIntervalSince(
+                                            log.loggedAt
+                                        )
+                                    ) < 10
+                                }
+                                .min {
+                                    abs(
+                                        $0.loggedAt.timeIntervalSince(
+                                            log.loggedAt
+                                        )
+                                    )
+                                    <
+                                    abs(
+                                        $1.loggedAt.timeIntervalSince(
+                                            log.loggedAt
+                                        )
+                                    )
+                                }
+
+                            if let matchingQuranLog {
+                                modelContext.delete(matchingQuranLog)
+                            }
+                        }
+
                         modelContext.delete(log)
-                        try? modelContext.save()
+
+                        do {
+                            try modelContext.save()
+                        } catch {
+                            print("Failed to delete log: \(error)")
+                        }
+
                     } label: {
                         Image(systemName: "trash")
                             .font(.system(size: 11))

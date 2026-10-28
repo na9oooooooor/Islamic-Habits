@@ -10,15 +10,18 @@ struct HomeView: View {
     @Environment(\.modelContext) private var context
     @Query private var allLogs: [DeedLog]
     @Query private var rhythmStates: [GlobalRhythmState]
+    @Query private var quranLogs: [QuranLog]
     @AppStorage("dailyGoal") private var dailyGoal: Int = 1
     @AppStorage("selectedLanguage") private var selectedLanguage: String = AppLanguage.english.rawValue
     @Environment(\.requestReview) var requestReview
     @AppStorage("focusDeeds") var focusDeedsRaw: String = ""
-    @AppStorage("smartNotifications") var smartNotificationsEnabled: Bool = true
+    @AppStorage("smartNotifications")
+    private var smartNotificationsEnabled:
+        Bool = false
     @AppStorage("lastRhythmAlertDate") var lastRhythmAlertDate: String = ""
     @State private var postLogWorship: WorshipType? = nil
     @State private var postLogInsight: String = ""
-    @State private var postLogCount66: Int = 0
+    @State private var postLogLast66Percentage: Int = 0
     @State private var showLevelUp = false
     @State private var newlyReachedLevel: DeedLevel = .niyyah
     @State private var showQuranSheet = false
@@ -27,7 +30,8 @@ struct HomeView: View {
     @State private var toastMessage: MirrorMessage? = nil
     @State private var showRhythmAlertIsLevelDrop: Bool = false
     @State private var showLevelInfo = false
-    
+    @State private var quranWasSaved = false
+    @State private var quranWasLoggedBefore = false
     
     var engine: DeedEngine {
         viewModel.engine(logs: allLogs, dailyGoal: dailyGoal)
@@ -90,39 +94,13 @@ struct HomeView: View {
     func showPostLog(for worship: WorshipType, wasLoggedBefore: Bool) {
         guard !wasLoggedBefore else { return }
         postLogInsight = worship.randomInsight
-        postLogCount66 = rhythmStates.first.map { engine.globalEffectiveStreak(state: $0) } ?? 0
+        postLogLast66Percentage =
+            engine.rhythmLast66Days
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             postLogWorship = worship
         }
     }
     
-    func checkRhythmAlerts() {
-        guard let state = rhythmStates.first else { return }
-        guard let message = engine.mirrorMessage(state: state, language: selectedLanguage) else { return }
-
-        switch message.priority {
-        case .alert:
-            if lastRhythmAlertDate != todayString() {
-                lastRhythmAlertDate = todayString()
-                showRhythmAlertIsLevelDrop = engine.globalShouldDropLevel(state: state)
-                showRhythmAlert = true
-            }
-        case .progress:
-            // once per session — show as toast
-            toastMessage = message
-            showToast = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                withAnimation(.easeOut(duration: 0.4)) {
-                    showToast = false
-                }
-            }
-        case .levelUp:
-            newlyReachedLevel = engine.computedCurrentLevel()
-            showLevelUp = true
-        default:
-            break
-        }
-    }
     
     var body: some View {
         ZStack {
@@ -253,21 +231,30 @@ struct HomeView: View {
                                 let isOverdue = engine.isOverdue(for: worship)
                                 let wasLoggedBefore = isLogged
                                 
-                                WorshipCard(
-                                    worship: worship,
-                                    isLogged: isLogged,
-                                    logCount: logCount,
-                                    selectedLanguage: selectedLanguage,
-                                    isOverdue: isOverdue,
-                                    isFocused: focusDeeds.contains(worship)
-                                ) {
-                                    viewModel.log(worshipType: worship, context: context)
-                                    if worship == .quran && focusDeeds.contains(.quran) {
-                                        showQuranSheet = true
-                                    } else {
-                                        showPostLog(for: worship, wasLoggedBefore: wasLoggedBefore)
-                                    }
-                                }
+                                            WorshipCard(
+                                                worship: worship,
+                                                isLogged: isLogged,
+                                                logCount: logCount,
+                                                selectedLanguage: selectedLanguage,
+                                                isOverdue: isOverdue,
+                                                isFocused: focusDeeds.contains(worship)
+                                            ) {
+
+                                                if worship == .quran && focusDeeds.contains(.quran) {
+                                                    quranWasLoggedBefore = wasLoggedBefore
+                                                    showQuranSheet = true
+                                                } else {
+                                                    viewModel.log(
+                                                        worshipType: worship,
+                                                        context: context
+                                                    )
+
+                                                    showPostLog(
+                                                        for: worship,
+                                                        wasLoggedBefore: wasLoggedBefore
+                                                    )
+                                                }
+                                            }
                                         }
                                                         }
                                                         .padding(.horizontal, 16)
@@ -298,7 +285,11 @@ struct HomeView: View {
                     selectedLanguage: selectedLanguage,
                     canUndo: viewModel.canUndo(logs: allLogs),
                     onUndo: {
-                        viewModel.undoLastLog(logs: allLogs, context: context)
+                        viewModel.undoLastLog(
+                            logs: allLogs,
+                            quranLogs: quranLogs,
+                            context: context
+                        )
                     }
                 )
                 .padding(.bottom, 100)
@@ -336,16 +327,24 @@ struct HomeView: View {
                 .presentationDetents([.fraction(0.75)])
             }
         }
-        .sheet(item: $postLogWorship) { worship in
+        .sheet(
+            item: $postLogWorship,
+            onDismiss: {
+                maybeRequestReview()
+            }
+        ) { worship in
             PostLogView(
                 worship: worship,
                 insightKey: postLogInsight,
-                globalStreak: postLogCount66,
-                totalToday: viewModel.totalDeedsToday(logs: allLogs),
+                last66Percentage: postLogLast66Percentage,
+                totalToday: viewModel.totalDeedsToday(
+                    logs: allLogs
+                ),
                 selectedLanguage: selectedLanguage,
-                onDismiss: { postLogWorship = nil }
+                onDismiss: {
+                    postLogWorship = nil
+                }
             )
-            .presentationDetents([.fraction(0.75)])
         }
         .sheet(isPresented: $showLevelUp) {
             LevelUpView(
@@ -355,12 +354,25 @@ struct HomeView: View {
             )
             .presentationDetents([.fraction(0.75)])
         }
-        .sheet(isPresented: $showQuranSheet, onDismiss: {
-            showPostLog(for: .quran, wasLoggedBefore: false)
-        }) {
+        .sheet(
+            isPresented: $showQuranSheet,
+            onDismiss: {
+                if quranWasSaved {
+                    showPostLog(
+                        for: .quran,
+                        wasLoggedBefore: quranWasLoggedBefore
+                    )
+                }
+
+                quranWasSaved = false
+                quranWasLoggedBefore = false
+            }
+        ) {
             QuranLogSheet(
                 selectedLanguage: selectedLanguage,
-                onSave: {}
+                onSave: {
+                    quranWasSaved = true
+                }
             )
         }
         .onChange(of: allLogs.count) { _, _ in
@@ -408,6 +420,23 @@ struct HomeView: View {
             )
         }
         .environment(\.layoutDirection, AppLanguage(rawValue: selectedLanguage)?.layoutDirection ?? .leftToRight)
+    }
+    func maybeRequestReview() {
+
+        guard engine.totalActiveDays >= 7 else {
+            return
+        }
+
+        guard AppReviewManager.shouldRequestReview()
+        else {
+            return
+        }
+
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + 1.5
+        ) {
+            requestReview()
+        }
     }
     }
     

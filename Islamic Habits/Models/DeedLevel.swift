@@ -11,7 +11,7 @@ enum DeedLevel: Int, CaseIterable {
     case niyyah = 1        // days 1–14
     case muraqabah = 2     // days 15–35
     case istiqamah = 3     // days 36–55
-    case aadah = 4         // days 56–66
+    case aadah = 4         // days 56–65
     case tabiah = 5        // days 66+
 
     static let rhythmDecayThreshold: Double = 5.0
@@ -51,8 +51,10 @@ enum DeedLevel: Int, CaseIterable {
         case .niyyah:     return "1–14 days"
         case .muraqabah:  return "15–35 days"
         case .istiqamah:  return "36–55 days"
-        case .aadah:      return "56–66 days"
-        case .tabiah:     return "66+ days"
+        case .aadah:      return "56–65 days"
+
+        case .tabiah:
+            return "66+ days"
         }
     }
     
@@ -63,16 +65,22 @@ enum DeedLevel: Int, CaseIterable {
             case .niyyah:    return "١–١٤ يوم"
             case .muraqabah: return "١٥–٣٥ يوم"
             case .istiqamah: return "٣٦–٥٥ يوم"
-            case .aadah:     return "٥٦–٦٦ يوم"
-            case .tabiah:    return "٦٦+ يوم"
+            case .aadah:
+                return "٥٦–٦٥ يوم"
+
+            case .tabiah:
+                return "٦٦+ يوم"
             }
         case "th":
             switch self {
             case .niyyah:    return "1–14 วัน"
             case .muraqabah: return "15–35 วัน"
             case .istiqamah: return "36–55 วัน"
-            case .aadah:     return "56–66 วัน"
-            case .tabiah:    return "66+ วัน"
+            case .aadah:
+                return "56–65 วัน"
+
+            case .tabiah:
+                return "66+ วัน"
             }
         default:
             return streakRange
@@ -81,21 +89,39 @@ enum DeedLevel: Int, CaseIterable {
 
     static func from(streak: Int) -> DeedLevel {
         switch streak {
-        case 0..<15:  return .niyyah
-        case 15..<36: return .muraqabah
-        case 36..<56: return .istiqamah
-        case 56..<67: return .aadah
-        default:      return .tabiah
+        case 0..<15:
+            return .niyyah
+
+        case 15..<36:
+            return .muraqabah
+
+        case 36..<56:
+            return .istiqamah
+
+        case 56..<66:
+            return .aadah
+
+        default:
+            return .tabiah
         }
     }
 
     var progressRange: ClosedRange<Int> {
         switch self {
-        case .niyyah:    return 1...14
-        case .muraqabah: return 15...35
-        case .istiqamah: return 36...55
-        case .aadah:     return 56...66
-        case .tabiah:    return 67...200
+        case .niyyah:
+            return 1...14
+
+        case .muraqabah:
+            return 15...35
+
+        case .istiqamah:
+            return 36...55
+
+        case .aadah:
+            return 56...65
+
+        case .tabiah:
+            return 66...200
         }
     }
 

@@ -9,6 +9,13 @@ struct SettingsView: View {
     @AppStorage("hasSeenTierPopup") private var hasSeenTierPopup: Bool = false
     @AppStorage("upgradeIconVisible") private var upgradeIconVisible: Bool = false
     @AppStorage("smartNotifications") private var smartNotificationsEnabled: Bool = false
+    @AppStorage("focusDeeds")
+    private var focusDeedsRaw:
+        String = ""
+
+    @AppStorage("lastRhythmAlertDate")
+    private var lastRhythmAlertDate:
+        String = ""
     @State private var resetDataIsOn = false
     @State private var showLanguagePicker = false
     
@@ -111,13 +118,28 @@ struct SettingsView: View {
                         .alert(localizedString("Reset All Data", language: selectedLanguage), isPresented: $resetDataIsOn) {
                             Button(role: .destructive) {
                                 do {
-                                    try modelContext.delete(model: DeedLog.self)
-                                    try modelContext.delete(model: QuranLog.self)
-                                    try modelContext.delete(model: GlobalRhythmState.self)
+                                    try modelContext.delete(
+                                        model: DeedLog.self
+                                    )
+
+                                    try modelContext.delete(
+                                        model: QuranLog.self
+                                    )
+
+                                    try modelContext.delete(
+                                        model: GlobalRhythmState.self
+                                    )
+
                                     try modelContext.save()
+
                                     dailyGoal = 1
+                                    focusDeedsRaw = ""
+                                    lastRhythmAlertDate = ""
+
                                     hasSeenTierPopup = false
                                     upgradeIconVisible = false
+
+                                    NotificationManager.cancelAll()
                                 } catch {
                                     print("Failed to erase data: \(error)")
                                 }

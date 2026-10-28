@@ -19,7 +19,7 @@ struct QuranFocusCard: View {
                 if let nudge = engine.nudgeMessage(language: selectedLanguage) {
                     nudgeCard(nudge)
                 }
-                heatmapPlaceholder
+                activityHeatmap
 
             }
             .padding(.bottom, 40)
@@ -226,35 +226,91 @@ struct QuranFocusCard: View {
         )
     }
     
-    var heatmapPlaceholder: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(localizedString("quran.card.activity", language: selectedLanguage))
-                .font(.system(size: 10))
-                .foregroundColor(gold.opacity(0.5))
-                .tracking(0.4)
+    var activityHeatmap: some View {
+        let activity = engine.activityLast63Days()
 
-            // 9 weeks × 7 days grid
-            let columns = Array(repeating: GridItem(.fixed(28), spacing: 4), count: 9)
-            LazyVGrid(columns: columns, spacing: 4) {
-                ForEach(0..<63, id: \.self) { _ in
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(gold.opacity(Double.random(in: 0.04...0.25)))
-                        .frame(height: 28)
+        let columns = Array(
+            repeating: GridItem(
+                .flexible(),
+                spacing: 4
+            ),
+            count: 7
+        )
+
+        return VStack(
+            alignment: .leading,
+            spacing: 8
+        ) {
+            Text(
+                localizedString(
+                    "quran.card.activity",
+                    language: selectedLanguage
+                )
+            )
+            .font(.system(size: 10))
+            .foregroundColor(gold.opacity(0.5))
+            .tracking(0.4)
+
+            LazyVGrid(
+                columns: columns,
+                spacing: 4
+            ) {
+                ForEach(
+                    Array(activity.enumerated()),
+                    id: \.offset
+                ) { entry in
+
+                    RoundedRectangle(
+                        cornerRadius: 4
+                    )
+                    .fill(
+                        gold.opacity(
+                            heatmapOpacity(
+                                for: entry.element.ayahs
+                            )
+                        )
+                    )
+                    .frame(height: 28)
                 }
             }
-
-            Text(localizedString("quran.card.activity.coming", language: selectedLanguage))
-                .font(.system(size: 10))
-                .foregroundColor(gold.opacity(0.3))
-                .italic()
-                .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.white.opacity(0.04))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(gold.opacity(0.12), lineWidth: 1))
+            RoundedRectangle(
+                cornerRadius: 14
+            )
+            .fill(Color.white.opacity(0.04))
+            .overlay(
+                RoundedRectangle(
+                    cornerRadius: 14
+                )
+                .stroke(
+                    gold.opacity(0.12),
+                    lineWidth: 1
+                )
+            )
         )
+    }
+    
+    func heatmapOpacity(
+        for ayahs: Int
+    ) -> Double {
+        switch ayahs {
+        case 0:
+            return 0.05
+
+        case 1...5:
+            return 0.25
+
+        case 6...15:
+            return 0.45
+
+        case 16...30:
+            return 0.65
+
+        default:
+            return 0.9
+        }
     }
 
     // MARK: - Nudge

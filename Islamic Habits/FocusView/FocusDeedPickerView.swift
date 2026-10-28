@@ -1,8 +1,13 @@
 import SwiftUI
 
 struct FocusDeedPickerView: View {
-    @AppStorage("focusDeeds") var focusDeedsRaw: String = ""
-    @AppStorage("selectedLanguage") var selectedLanguage: String = "en"
+    @AppStorage("focusDeeds")
+    private var storedFocusDeeds: String = ""
+
+    @AppStorage("selectedLanguage")
+    private var selectedLanguage: String = "en"
+
+    @State private var selectedDeeds: [WorshipType] = []
 
     var onContinue: () -> Void
     var onSkip: () -> Void
@@ -13,9 +18,7 @@ struct FocusDeedPickerView: View {
     // MARK: - Computed
 
     var focusDeeds: [WorshipType] {
-        focusDeedsRaw
-            .split(separator: ",")
-            .compactMap { WorshipType(rawValue: String($0)) }
+        selectedDeeds
     }
 
     var isFull: Bool {
@@ -25,14 +28,17 @@ struct FocusDeedPickerView: View {
     // MARK: - Toggle
 
     func toggle(_ worship: WorshipType) {
-        var current = focusDeeds
-        if current.contains(worship) {
-            current.removeAll { $0 == worship }
+        if selectedDeeds.contains(worship) {
+            selectedDeeds.removeAll {
+                $0 == worship
+            }
         } else {
-            guard !isFull else { return }
-            current.append(worship)
+            guard selectedDeeds.count < 3 else {
+                return
+            }
+
+            selectedDeeds.append(worship)
         }
-        focusDeedsRaw = current.map { $0.rawValue }.joined(separator: ",")
     }
 
     // MARK: - Body
@@ -97,7 +103,13 @@ struct FocusDeedPickerView: View {
                         .foregroundColor(.white.opacity(0.4))
 
 
-                    Button(action: onContinue) {
+                    Button {
+                        storedFocusDeeds = selectedDeeds
+                            .map(\.rawValue)
+                            .joined(separator: ",")
+
+                        onContinue()
+                    } label: {
                         Text(localizedString("Continue", language: selectedLanguage))
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(focusDeeds.isEmpty ? .gray : Color("#1F1712"))
@@ -122,6 +134,12 @@ struct FocusDeedPickerView: View {
                 .background(Color("#1F1712").opacity(0.95))
                 .ignoresSafeArea(edges: .bottom)
             }
+        }.onAppear {
+            selectedDeeds = storedFocusDeeds
+                .split(separator: ",")
+                .compactMap {
+                    WorshipType(rawValue: String($0))
+                }
         }
     }
 }

@@ -39,7 +39,9 @@ struct FocusView: View {
 
                     // Top bar
                     HStack {
-                        Text("\(localizedString("focus.on", language: selectedLanguage)) \(focusDeeds[currentPage].localizedName(language: selectedLanguage))")
+                        Text(
+                            "\(localizedString("focus.on", language: selectedLanguage)) \(currentFocusDeed?.localizedName(language: selectedLanguage) ?? "")"
+                        )
                             .font(.system(size: 20, weight: .light))
                             .italic()
                             .foregroundColor(gold)
@@ -129,6 +131,16 @@ struct FocusView: View {
                 onSkip: { showPicker = false }
             )
         }
+        .onChange(of: focusDeeds.count) { _, newCount in
+            if newCount == 0 {
+                currentPage = 0
+            } else {
+                currentPage = min(
+                    currentPage,
+                    newCount - 1
+                )
+            }
+        }
     }
 
     // MARK: - Level Progression Bar
@@ -190,6 +202,18 @@ struct FocusView: View {
         .animation(.easeInOut, value: currentLevel)
     }
 
+    var currentFocusDeed: WorshipType? {
+        guard !focusDeeds.isEmpty else {
+            return nil
+        }
+
+        let safeIndex = min(
+            max(currentPage, 0),
+            focusDeeds.count - 1
+        )
+
+        return focusDeeds[safeIndex]
+    }
     // MARK: - Empty State
     var emptyState: some View {
         VStack(spacing: 20) {

@@ -27,16 +27,35 @@ struct QuranLogSheet: View {
     }
 
     func saveLog() {
-        let log = QuranLog(
+        guard ayahsRead > 0 else { return }
+
+        let timestamp = Date()
+
+        let deedLog = DeedLog(
+            worshipType: .quran,
+            loggedAt: timestamp
+        )
+
+        let quranLog = QuranLog(
             surahFromNumber: selectedSurahFrom.number,
             ayahFrom: selectedAyahFrom,
             surahToNumber: selectedSurahTo.number,
             ayahTo: selectedAyahTo,
             ayahsRead: ayahsRead
         )
-        context.insert(log)
-        onSave()
-        dismiss()
+
+        quranLog.loggedAt = timestamp
+
+        context.insert(deedLog)
+        context.insert(quranLog)
+
+        do {
+            try context.save()
+            onSave()
+            dismiss()
+        } catch {
+            print("Failed to save Quran log: \(error)")
+        }
     }
 
     var body: some View {
@@ -152,8 +171,57 @@ struct QuranLogSheet: View {
                 .padding(.bottom, 32)
                 .padding(.top, 16)
             }
+        }.onChange(of: selectedSurahFrom.number) { _, _ in
+            
+            selectedAyahFrom = min(
+                selectedAyahFrom,
+                selectedSurahFrom.ayahs
+            )
+
+            if selectedSurahTo.number < selectedSurahFrom.number {
+                selectedSurahTo = selectedSurahFrom
+                selectedAyahTo = selectedAyahFrom
+            }
+
+            if selectedSurahTo.number == selectedSurahFrom.number {
+                selectedAyahTo = max(
+                    selectedAyahTo,
+                    selectedAyahFrom
+                )
+
+                selectedAyahTo = min(
+                    selectedAyahTo,
+                    selectedSurahTo.ayahs
+                )
+            }
+        }
+
+        .onChange(of: selectedAyahFrom) { _, newAyah in
+            if selectedSurahFrom.number == selectedSurahTo.number {
+                selectedAyahTo = max(
+                    selectedAyahTo,
+                    newAyah
+                )
+            }
+        }
+
+        .onChange(of: selectedSurahTo.number) { _, _ in
+            selectedAyahTo = min(
+                selectedAyahTo,
+                selectedSurahTo.ayahs
+            )
+
+            if selectedSurahFrom.number == selectedSurahTo.number {
+                selectedAyahTo = max(
+                    selectedAyahTo,
+                    selectedAyahFrom
+                )
+            } else if selectedAyahTo < 1 {
+                selectedAyahTo = 1
+            }
         }
     }
+    
 
     // MARK: - Picker Card
     func pickerCard(

@@ -4,7 +4,7 @@ struct PostLogView: View {
     
     let worship: WorshipType
     let insightKey: String
-    let globalStreak: Int
+    let last66Percentage: Int
     let totalToday: Int
     let selectedLanguage: String
     let onDismiss: () -> Void
@@ -65,12 +65,36 @@ struct PostLogView: View {
                 VStack(spacing: 16) {
                     HStack(spacing: 24) {
                         VStack(spacing: 4) {
-                            Text(localizedString("postlog.last66days", language: selectedLanguage))
-                                .font(.system(size: 28, weight: .thin))
-                                .foregroundColor(Color(red: 0.85, green: 0.72, blue: 0.52))
-                            Text(localizedString("focus.streak.healthy", language: selectedLanguage))
-                                .font(.system(size: 11, weight: .light))
-                                .foregroundColor(.white.opacity(0.35))
+                            Text("\(last66Percentage)%")
+                                .font(
+                                    .system(
+                                        size: 28,
+                                        weight: .thin
+                                    )
+                                )
+                                .foregroundColor(
+                                    Color(
+                                        red: 0.85,
+                                        green: 0.72,
+                                        blue: 0.52
+                                    )
+                                )
+
+                            Text(
+                                localizedString(
+                                    "postlog.last66days",
+                                    language: selectedLanguage
+                                )
+                            )
+                            .font(
+                                .system(
+                                    size: 11,
+                                    weight: .light
+                                )
+                            )
+                            .foregroundColor(
+                                .white.opacity(0.35)
+                            )
                         }
                         
                         Rectangle()

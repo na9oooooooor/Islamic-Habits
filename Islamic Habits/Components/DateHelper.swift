@@ -1,38 +1,55 @@
 import Foundation
 
-var startOfIslamicDay: Date {
-    let now = Date()
-    let calendar = Calendar.current
-    var components = calendar.dateComponents([.year, .month, .day], from: now)
-    components.hour = 2
-    components.minute = 0
-    let todayAt2am = calendar.date(from: components)!
-    
-    if now < todayAt2am {
-        return calendar.date(byAdding: .day, value: -1, to: todayAt2am)!
-    }
-    return todayAt2am
+private let trackingDayBoundaryHour = 2
+
+var startOfTrackingDay: Date {
+    trackingDayStart(for: Date())
 }
 
-var startOfIslamicTomorrow: Date {
-    return Calendar.current.date(byAdding: .day, value: 1, to: startOfIslamicDay)!
+var startOfTrackingTomorrow: Date {
+    Calendar.current.date(
+        byAdding: .day,
+        value: 1,
+        to: startOfTrackingDay
+    )!
 }
 
-func islamicStartOfDay(for date: Date) -> Date {
+func trackingDayStart(for date: Date) -> Date {
     let calendar = Calendar.current
-    var components = calendar.dateComponents([.year, .month, .day], from: date)
-    components.hour = 2
+
+    var components = calendar.dateComponents(
+        [.year, .month, .day],
+        from: date
+    )
+
+    components.hour = trackingDayBoundaryHour
     components.minute = 0
+    components.second = 0
+
     let boundary = calendar.date(from: components)!
-    
+
     if date < boundary {
-        return calendar.date(byAdding: .day, value: -1, to: boundary)!
+        return calendar.date(
+            byAdding: .day,
+            value: -1,
+            to: boundary
+        )!
     }
+
     return boundary
+}
+
+func trackingCalendarDate(for date: Date) -> Date {
+    Calendar.current.startOfDay(
+        for: trackingDayStart(for: date)
+    )
 }
 
 func todayString() -> String {
     let formatter = DateFormatter()
     formatter.dateFormat = "yyyy-MM-dd"
-    return formatter.string(from: Date())
+
+    return formatter.string(
+        from: trackingCalendarDate(for: Date())
+    )
 }
