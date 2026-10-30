@@ -22,14 +22,14 @@ struct HabitProgressBar: View {
     }
     
     var message: String {
-        let key: String
-        switch progress {
-        case 0..<0.15: key = "habitProgress.begin"
-        case 0.15..<0.5: key = "habitProgress.forming"
-        case 0.5..<0.85: key = "habitProgress.almost"
-        default: key = "habitProgress.established"
+        switch selectedLanguage {
+        case "ar":
+            return "رحلة ٦٦ يومًا"
+        case "th":
+            return "เส้นทาง 66 วัน"
+        default:
+            return "66-day journey"
         }
-        return localizedString(key, language: selectedLanguage)
     }
     
     var body: some View {

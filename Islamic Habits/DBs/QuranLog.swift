@@ -4,6 +4,7 @@ import SwiftData
 @Model
 class QuranLog {
     var loggedAt: Date
+    var quranSessionID: UUID? = nil
     var surahFromNumber: Int
     var ayahFrom: Int
     var surahToNumber: Int

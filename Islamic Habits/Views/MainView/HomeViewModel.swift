@@ -23,11 +23,12 @@ struct HomeViewModel {
         logs.contains { $0.loggedAt >= startOfTrackingDay && $0.loggedAt < startOfTrackingTomorrow }
     }
     
+    @discardableResult
     func undoLastLog(
         logs: [DeedLog],
         quranLogs: [QuranLog],
         context: ModelContext
-    ) {
+    ) -> Bool {
         let todayLogs = logs.filter {
             $0.loggedAt >= startOfTrackingDay &&
             $0.loggedAt < startOfTrackingTomorrow
@@ -36,50 +37,56 @@ struct HomeViewModel {
         guard let latest = todayLogs.max(
             by: { $0.loggedAt < $1.loggedAt }
         ) else {
-            return
+            return true
         }
 
-        if latest.worshipType == WorshipType.quran.rawValue {
-
-            let matchingQuranLog = quranLogs
-                .filter {
-                    abs(
-                        $0.loggedAt.timeIntervalSince(
-                            latest.loggedAt
-                        )
-                    ) < 10
-                }
-                .min {
-                    abs(
-                        $0.loggedAt.timeIntervalSince(
-                            latest.loggedAt
-                        )
-                    )
-                    <
-                    abs(
-                        $1.loggedAt.timeIntervalSince(
-                            latest.loggedAt
-                        )
-                    )
-                }
-
-            if let matchingQuranLog {
-                context.delete(matchingQuranLog)
+        // Save existing pending work before attempting deletion.
+        do {
+            if context.hasChanges {
+                try context.save()
             }
+        } catch {
+            print("Could not prepare undo: \(error)")
+            return false
+        }
+
+        if let reading = latest.linkedQuranLog(
+            in: quranLogs,
+            among: logs
+        ) {
+            context.delete(reading)
         }
 
         context.delete(latest)
 
         do {
             try context.save()
+            return true
         } catch {
+            context.rollback()
             print("Undo failed: \(error)")
+            return false
         }
     }
     
-    func log(worshipType: WorshipType, context: ModelContext) {
+    @discardableResult
+    func log(
+        worshipType: WorshipType,
+        context: ModelContext
+    ) -> Bool {
         let newLog = DeedLog(worshipType: worshipType)
         context.insert(newLog)
+
+        do {
+            try context.save()
+        } catch {
+            context.delete(newLog)
+            print("Failed to save deed: \(error)")
+            return false
+        }
+
+        MirrorAnalytics.deedSubmitted()
+        return true
     }
     
     

@@ -15,7 +15,8 @@ struct QuranLogSheet: View {
     @State private var selectedAyahFrom: Int = 1
     @State private var selectedSurahTo: Surah = QuranData.surahs[0]
     @State private var selectedAyahTo: Int = 1
-
+    @State private var showSaveError = false
+    
     var ayahsRead: Int {
         let engine = DeedEngine(logs: [], dailyGoal: 1)
         return engine.calculateAyahsRead(
@@ -26,7 +27,7 @@ struct QuranLogSheet: View {
         )
     }
 
-    func saveLog() {
+  func saveLog() {
         guard ayahsRead > 0 else { return }
 
         let timestamp = Date()
@@ -46,18 +47,27 @@ struct QuranLogSheet: View {
 
         quranLog.loggedAt = timestamp
 
+        let sessionID = UUID()
+        deedLog.quranSessionID = sessionID
+        quranLog.quranSessionID = sessionID
+
         context.insert(deedLog)
         context.insert(quranLog)
 
         do {
             try context.save()
+            MirrorAnalytics.deedSubmitted()
             onSave()
             dismiss()
         } catch {
+            context.delete(quranLog)
+            context.delete(deedLog)
+
+            showSaveError = true
             print("Failed to save Quran log: \(error)")
         }
     }
-
+    
     var body: some View {
         ZStack {
             bg.ignoresSafeArea()
@@ -170,6 +180,26 @@ struct QuranLogSheet: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)
                 .padding(.top, 16)
+                .disabled(ayahsRead <= 0)
+                .opacity(ayahsRead > 0 ? 1 : 0.5)
+                .alert(
+                    selectedLanguage == "ar"
+                        ? "تعذّر الحفظ"
+                        : selectedLanguage == "th"
+                            ? "บันทึกไม่สำเร็จ"
+                            : "Couldn’t save",
+                    isPresented: $showSaveError
+                ) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(
+                        selectedLanguage == "ar"
+                            ? "لم يتم حفظ القراءة. اختياراتك ما زالت موجودة؛ حاول مجددًا."
+                            : selectedLanguage == "th"
+                                ? "บันทึกการอ่านไม่สำเร็จ ตัวเลือกของคุณยังอยู่ กรุณาลองอีกครั้ง"
+                                : "Your reading wasn’t saved. Your selections are still here; please try again."
+                    )
+                }
             }
         }.onChange(of: selectedSurahFrom.number) { _, _ in
             

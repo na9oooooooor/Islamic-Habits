@@ -46,7 +46,6 @@ struct OnboardingExplainView: View {
                             currentPage += 1
                         }
                     } else {
-                        NotificationManager.requestPermission()
                         hasCompletedOnboarding = true
                         hasSeenFocusOnboarding = true
                     }

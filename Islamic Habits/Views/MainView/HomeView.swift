@@ -2,10 +2,29 @@
 import SwiftUI
 import SwiftData
 import StoreKit
-
+import Combine
 
 struct HomeView: View {
+    var isActive: Bool = true
+    @Environment(\.scenePhase) private var scenePhase
+
+    @State private var visibleTrackingDay = startOfTrackingDay
+
+    private let trackingDayTimer = Timer.publish(
+        every: 30,
+        on: .main,
+        in: .common
+    ).autoconnect()
+
+    private func refreshTrackingDay() {
+        let currentDay = startOfTrackingDay
+
+        if currentDay != visibleTrackingDay {
+            visibleTrackingDay = currentDay
+        }
+    }
     
+    @State private var pendingLevelCheck = false
     private let viewModel = HomeViewModel()
     @Environment(\.modelContext) private var context
     @Query private var allLogs: [DeedLog]
@@ -19,11 +38,10 @@ struct HomeView: View {
     private var smartNotificationsEnabled:
         Bool = false
     @AppStorage("lastRhythmAlertDate") var lastRhythmAlertDate: String = ""
-    @State private var postLogWorship: WorshipType? = nil
-    @State private var postLogInsight: String = ""
-    @State private var postLogLast66Percentage: Int = 0
+    @State private var logConfirmationID = UUID()
     @State private var showLevelUp = false
     @State private var newlyReachedLevel: DeedLevel = .niyyah
+    @State private var showDeedSaveError = false
     @State private var showQuranSheet = false
     @State private var showRhythmAlert = false
     @State private var showToast = false
@@ -91,16 +109,84 @@ struct HomeView: View {
     
 
     
-    func showPostLog(for worship: WorshipType, wasLoggedBefore: Bool) {
-        guard !wasLoggedBefore else { return }
-        postLogInsight = worship.randomInsight
-        postLogLast66Percentage =
-            engine.rhythmLast66Days
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            postLogWorship = worship
+    func showPostLog(
+        for worship: WorshipType,
+        wasLoggedBefore _: Bool
+    ) {
+        let confirmationID = UUID()
+        logConfirmationID = confirmationID
+
+        let title: String
+
+        switch selectedLanguage {
+        case "ar":
+            title = "تم تسجيل العمل"
+        case "th":
+            title = "บันทึกความดีแล้ว"
+        default:
+            title = "Deed recorded"
+        }
+
+        toastMessage = MirrorMessage(
+            priority: .progress,
+            icon: "checkmark.circle.fill",
+            title: title,
+            subtitle: worship.localizedName(
+                language: selectedLanguage
+            )
+        )
+
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showToast = true
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            guard logConfirmationID == confirmationID else {
+                return
+            }
+
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showToast = false
+            }
         }
     }
     
+    private func checkForLevelChange() {
+        pendingLevelCheck = true
+        presentPendingLevelChange()
+    }
+
+    private func presentPendingLevelChange() {
+        guard pendingLevelCheck,
+              isActive,
+              !showQuranSheet,
+              !showLevelInfo,
+              !showLevelUp,
+              !showRhythmAlert,
+              let state = rhythmStates.first else {
+            return
+        }
+
+        pendingLevelCheck = false
+
+        let computed = engine.computedCurrentLevel()
+        let previousLevel = state.currentLevel
+
+        guard computed.rawValue != previousLevel else {
+            return
+        }
+
+        state.currentLevel = computed.rawValue
+
+        if computed.rawValue > previousLevel {
+            newlyReachedLevel = computed
+            showLevelUp = true
+        } else if lastRhythmAlertDate != todayString() {
+            lastRhythmAlertDate = todayString()
+            showRhythmAlertIsLevelDrop = true
+            showRhythmAlert = true
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -244,10 +330,13 @@ struct HomeView: View {
                                                     quranWasLoggedBefore = wasLoggedBefore
                                                     showQuranSheet = true
                                                 } else {
-                                                    viewModel.log(
+                                                    guard viewModel.log(
                                                         worshipType: worship,
                                                         context: context
-                                                    )
+                                                    ) else {
+                                                        showDeedSaveError = true
+                                                        return
+                                                    }
 
                                                     showPostLog(
                                                         for: worship,
@@ -278,18 +367,29 @@ struct HomeView: View {
             VStack {
                 Spacer()
                 HabitProgressBar(
-                    progress: rhythmStates.first.map {
-                        engine.globalDecayedPercentage(state: $0) / 100
-                    } ?? 0,
+                    progress: min(
+                        max(
+                            Double(engine.computedLevelAndDays().days) / 66.0,
+                            0.0
+                        ),
+                        1.0
+                    ),
                     deedsToday: viewModel.totalDeedsToday(logs: allLogs),
                     selectedLanguage: selectedLanguage,
                     canUndo: viewModel.canUndo(logs: allLogs),
                     onUndo: {
-                        viewModel.undoLastLog(
+                        let didUndo = viewModel.undoLastLog(
                             logs: allLogs,
                             quranLogs: quranLogs,
                             context: context
                         )
+
+                        if didUndo {
+                            logConfirmationID = UUID()
+                            showToast = false
+                        } else {
+                            showDeedSaveError = true
+                        }
                     }
                 )
                 .padding(.bottom, 100)
@@ -308,7 +408,32 @@ struct HomeView: View {
                 .allowsHitTesting(false)
             }
         }
-        .sheet(isPresented: $showLevelInfo) {
+        .alert(
+            selectedLanguage == "ar"
+                ? "تعذّر الحفظ"
+                : selectedLanguage == "th"
+                    ? "บันทึกไม่สำเร็จ"
+                    : "Couldn’t save",
+            isPresented: $showDeedSaveError
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(
+                selectedLanguage == "ar"
+                    ? "تعذّر حفظ التغيير. حاول مجددًا."
+                    : selectedLanguage == "th"
+                        ? "บันทึกการเปลี่ยนแปลงไม่สำเร็จ กรุณาลองอีกครั้ง"
+                        : "Your change couldn’t be saved. Please try again."
+            )
+        }
+        .onDisappear {
+            logConfirmationID = UUID()
+            showToast = false
+        }
+        .sheet(
+            isPresented: $showLevelInfo,
+            onDismiss: presentPendingLevelChange
+        ) {
             LevelUpView(
                 newLevel: engine.computedCurrentLevel(),
                 selectedLanguage: selectedLanguage,
@@ -316,7 +441,10 @@ struct HomeView: View {
             )
             .presentationDetents([.fraction(0.75)])
         }
-        .sheet(isPresented: $showRhythmAlert) {
+        .sheet(
+            isPresented: $showRhythmAlert,
+            onDismiss: presentPendingLevelChange
+        ) {
             if let state = rhythmStates.first {
                 RhythmAlertSheet(
                     state: state,
@@ -328,25 +456,9 @@ struct HomeView: View {
             }
         }
         .sheet(
-            item: $postLogWorship,
-            onDismiss: {
-                maybeRequestReview()
-            }
-        ) { worship in
-            PostLogView(
-                worship: worship,
-                insightKey: postLogInsight,
-                last66Percentage: postLogLast66Percentage,
-                totalToday: viewModel.totalDeedsToday(
-                    logs: allLogs
-                ),
-                selectedLanguage: selectedLanguage,
-                onDismiss: {
-                    postLogWorship = nil
-                }
-            )
-        }
-        .sheet(isPresented: $showLevelUp) {
+            isPresented: $showLevelUp,
+            onDismiss: presentPendingLevelChange
+        ) {
             LevelUpView(
                 newLevel: newlyReachedLevel,
                 selectedLanguage: selectedLanguage,
@@ -366,6 +478,8 @@ struct HomeView: View {
 
                 quranWasSaved = false
                 quranWasLoggedBefore = false
+
+                presentPendingLevelChange()
             }
         ) {
             QuranLogSheet(
@@ -375,50 +489,45 @@ struct HomeView: View {
                 }
             )
         }
+        .onReceive(trackingDayTimer) { _ in
+            guard scenePhase == .active else { return }
+            refreshTrackingDay()
+        }
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            if phase == .active {
+                refreshTrackingDay()
+            }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: UIApplication.significantTimeChangeNotification
+            )
+        ) { _ in
+            refreshTrackingDay()
+        }
+        .onChange(of: visibleTrackingDay) { _, _ in
+            checkForLevelChange()
+        }
         .onChange(of: allLogs.count) { _, _ in
-            guard let state = rhythmStates.first else { return }
-            let computed = engine.computedCurrentLevel()
-            print("computed: \(computed.rawValue), stored: \(state.currentLevel)")
-            
-            if computed.rawValue > state.currentLevel {
-                state.currentLevel = computed.rawValue
-                newlyReachedLevel = computed
-                showLevelUp = true
-            } else if computed.rawValue < state.currentLevel {
-                state.currentLevel = computed.rawValue
-                showRhythmAlertIsLevelDrop = true
-                showRhythmAlert = true
+            checkForLevelChange()
+        }
+        .onChange(of: rhythmStates.count) { _, _ in
+            checkForLevelChange()
+        }
+        .onChange(of: isActive) { _, active in
+            if active {
+                checkForLevelChange()
             }
         }
         .onAppear {
-            ensureGlobalRhythmStateExists(states: rhythmStates, context: context)
-            
-            if let state = rhythmStates.first {
-                let computed = engine.computedCurrentLevel()
-                
-                if computed.rawValue > state.currentLevel {
-                    state.currentLevel = computed.rawValue
-                    newlyReachedLevel = computed
-                    showLevelUp = true
-                } else if computed.rawValue < state.currentLevel {
-                    state.currentLevel = computed.rawValue
-                    if lastRhythmAlertDate != todayString() {
-                        lastRhythmAlertDate = todayString()
-                        showRhythmAlertIsLevelDrop = true
-                        showRhythmAlert = true
-                    }
-                }
-            }
-            // ... rest of onAppear
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-            NotificationManager.scheduleAll(
-                engine: engine,
-                focusDeeds: focusDeeds,
-                smartNotificationsEnabled: smartNotificationsEnabled,
-                language: selectedLanguage
+            ensureGlobalRhythmStateExists(
+                states: rhythmStates,
+                context: context
             )
+
+            checkForLevelChange()
         }
+
         .environment(\.layoutDirection, AppLanguage(rawValue: selectedLanguage)?.layoutDirection ?? .leftToRight)
     }
     func maybeRequestReview() {

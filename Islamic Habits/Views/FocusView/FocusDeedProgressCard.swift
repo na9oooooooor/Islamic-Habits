@@ -40,14 +40,79 @@ struct FocusDeedProgressCard: View {
         }
     }
 
+    private var periodUnitLabel: String {
+        switch selectedLanguage {
+        case "ar":
+            switch worship.streakUnit {
+            case 7: return "فترات من ٧ أيام"
+            case 30: return "فترات من ٣٠ يومًا"
+            default: return "أيام"
+            }
+
+        case "th":
+            switch worship.streakUnit {
+            case 7: return "ช่วงละ 7 วัน"
+            case 30: return "ช่วงละ 30 วัน"
+            default: return "วัน"
+            }
+
+        default:
+            switch worship.streakUnit {
+            case 7: return "7-day periods"
+            case 30: return "30-day periods"
+            default: return "days"
+            }
+        }
+    }
+
+    private func formattedCount(_ count: Int) -> String {
+        count.formatted(
+            .number
+                .grouping(.never)
+                .locale(Locale(identifier: selectedLanguage))
+        )
+    }
+
+    private var levelRangeText: String {
+        let range = level.progressRange
+
+        let numbers: String
+        if level == .tabiah {
+            numbers = "\(formattedCount(range.lowerBound))+"
+        } else {
+            numbers = "\(formattedCount(range.lowerBound))–\(formattedCount(range.upperBound))"
+        }
+
+        return "\(numbers) \(periodUnitLabel)"
+    }
+
     var statusText: String {
         switch status {
         case .healthy:
-            return "\(streak) \(localizedString("focus.streak.healthy", language: selectedLanguage))"
+            switch selectedLanguage {
+            case "ar":
+                return "المكتمل: \(formattedCount(streak))"
+            case "th":
+                return "สำเร็จ: \(formattedCount(streak))"
+            default:
+                return "Completed: \(formattedCount(streak))"
+            }
+
         case .warning(let remaining):
-            return "\(remaining) \(localizedString("focus.grace.left", language: selectedLanguage))"
+            switch selectedLanguage {
+            case "ar":
+                return "السماح المتبقي: \(formattedCount(remaining))"
+            case "th":
+                return "ช่วงผ่อนผันที่เหลือ: \(formattedCount(remaining))"
+            default:
+                return "Grace remaining: \(formattedCount(remaining))"
+            }
+
         case .broken:
-            return localizedString("focus.streak.broken", language: selectedLanguage)
+            return localizedString(
+                "focus.streak.broken",
+                language: selectedLanguage
+            )
         }
     }
 
@@ -115,7 +180,7 @@ struct FocusDeedProgressCard: View {
 
                     Spacer()
 
-                    Text(level.streakRange(language: selectedLanguage))
+                    Text(levelRangeText)
                         .font(.system(size: 11))
                         .foregroundColor(.white.opacity(0.3))
                 }

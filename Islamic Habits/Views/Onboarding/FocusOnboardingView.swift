@@ -45,7 +45,6 @@ struct FocusOnboardingView: View {
                             currentPage += 1
                         }
                     } else {
-                        NotificationManager.requestPermission()
                         hasSeenFocusOnboarding = true
                     }
                 } label: {

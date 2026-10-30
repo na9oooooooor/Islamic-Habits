@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		70410405309405730049A485 /* TelemetryClient in Frameworks */ = {isa = PBXBuildFile; productRef = 70410404309405730049A485 /* TelemetryClient */; };
+		70410407309405730049A485 /* TelemetryDeck in Frameworks */ = {isa = PBXBuildFile; productRef = 70410406309405730049A485 /* TelemetryDeck */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		7047448C2FAE0B76006263FB /* Islamic Habits.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Islamic Habits.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +41,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				70410405309405730049A485 /* TelemetryClient in Frameworks */,
+				70410407309405730049A485 /* TelemetryDeck in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +85,8 @@
 			);
 			name = "Islamic Habits";
 			packageProductDependencies = (
+				70410404309405730049A485 /* TelemetryClient */,
+				70410406309405730049A485 /* TelemetryDeck */,
 			);
 			productName = "Islamic Habits";
 			productReference = 7047448C2FAE0B76006263FB /* Islamic Habits.app */;
@@ -109,6 +118,9 @@
 			);
 			mainGroup = 704744832FAE0B76006263FB;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				70410403309405730049A485 /* XCRemoteSwiftPackageReference "SwiftSDK" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7047448D2FAE0B76006263FB /* Products */;
 			projectDirPath = "";
@@ -147,7 +159,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = FC6SCP9BDY;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -172,7 +184,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
-				MARKETING_VERSION = 2.22;
+				MARKETING_VERSION = 2.23;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.nas.Islamic-Mirror";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -197,7 +209,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = FC6SCP9BDY;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -222,7 +234,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
-				MARKETING_VERSION = 2.22;
+				MARKETING_VERSION = 2.23;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.nas.Islamic-Mirror";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -380,6 +392,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		70410403309405730049A485 /* XCRemoteSwiftPackageReference "SwiftSDK" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TelemetryDeck/SwiftSDK";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.14.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		70410404309405730049A485 /* TelemetryClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 70410403309405730049A485 /* XCRemoteSwiftPackageReference "SwiftSDK" */;
+			productName = TelemetryClient;
+		};
+		70410406309405730049A485 /* TelemetryDeck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 70410403309405730049A485 /* XCRemoteSwiftPackageReference "SwiftSDK" */;
+			productName = TelemetryDeck;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 704744842FAE0B76006263FB /* Project object */;
 }

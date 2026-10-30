@@ -111,11 +111,23 @@ struct CalendarView: View {
                     }
                 }
                 .sheet(isPresented: $addLogDay) {
-                    AddPastLogView()
-                        .presentationDetents([.fraction(0.7)])
+                    AddPastLogView(
+                        initialDate: selectedDay?.date
+                    )
+                    .presentationDetents([.fraction(0.7)])
                 }
             }
         }
+        .environment(
+            \.layoutDirection,
+            selectedLanguage == "ar"
+                ? .rightToLeft
+                : .leftToRight
+        )
+        .environment(
+            \.locale,
+            Locale(identifier: selectedLanguage)
+        )
     }
 }
 
@@ -136,14 +148,38 @@ struct CalendarGrid: View {
 
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
-    private let weekdaySymbols = ["S", "M", "T", "W", "T", "F", "S"]
+    private var weekdaySymbols: [String] {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: selectedLanguage)
+        formatter.calendar = calendar
+
+        let symbols: [String] =
+            formatter.shortStandaloneWeekdaySymbols
+
+        let firstIndex = calendar.firstWeekday - 1
+
+        return (0..<7).map { offset in
+            symbols[(firstIndex + offset) % 7]
+        }
+    }
     
     var daysInMonth: [Date?] {
         guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: month)),
               let range = calendar.range(of: .day, in: .month, for: monthStart) else { return [] }
         
-        let firstWeekday = calendar.component(.weekday, from: monthStart) - 1
-        var days: [Date?] = Array(repeating: nil, count: firstWeekday)
+        let monthStartWeekday = calendar.component(
+            .weekday,
+            from: monthStart
+        )
+
+        let leadingEmptyDays = (
+            monthStartWeekday - calendar.firstWeekday + 7
+        ) % 7
+
+        var days: [Date?] = Array(
+            repeating: nil,
+            count: leadingEmptyDays
+        )
         
         for day in range {
             if let date = calendar.date(byAdding: .day, value: day - 1, to: monthStart) {
@@ -173,9 +209,14 @@ struct CalendarGrid: View {
                     Button {
                         onPreviousMonth()
                     } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 14))
-                            .foregroundColor(.white.opacity(0.4))
+                        Image(
+                            systemName: selectedLanguage == "ar"
+                                ? "chevron.right"
+                                : "chevron.left"
+                        )
+                        .environment(\.layoutDirection, .leftToRight)
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.4))
                     }
                     
                     Spacer()
@@ -189,9 +230,18 @@ struct CalendarGrid: View {
                     Button {
                         onNextMonth()
                     } label: {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14))
-                            .foregroundColor(isCurrentMonth ? .white.opacity(0.15) : .white.opacity(0.4))
+                        Image(
+                            systemName: selectedLanguage == "ar"
+                                ? "chevron.left"
+                                : "chevron.right"
+                        )
+                        .environment(\.layoutDirection, .leftToRight)
+                        .font(.system(size: 14))
+                        .foregroundColor(
+                            isCurrentMonth
+                                ? .white.opacity(0.15)
+                                : .white.opacity(0.4)
+                        )
                     }
                     .disabled(isCurrentMonth)
                 }
@@ -199,10 +249,13 @@ struct CalendarGrid: View {
                 
             Spacer()
             LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(weekdaySymbols, id: \.self) { symbol in
+                ForEach(
+                    Array(weekdaySymbols.enumerated()),
+                    id: \.offset
+                ) { _, symbol in
                     Text(symbol)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.25))
+                        .font(.caption.weight(.medium))
+                        .foregroundColor(.white.opacity(0.7))
                         .frame(maxWidth: .infinity)
                 }
                 
@@ -248,7 +301,11 @@ struct CalendarGrid: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 44)
                         }
-                        .disabled(trackingDayStart(for: date) > startOfTrackingDay)
+                        .disabled(
+                            startOfDate > Calendar.current.startOfDay(
+                                for: islamicToday
+                            )
+                        )
                         
                     } else {
                         RoundedRectangle(cornerRadius: 4)
@@ -273,8 +330,47 @@ struct DaySection: View {
     let selectedLanguage: String
     let isHighlighted: Bool
     @Query private var quranLogs: [QuranLog]
-
+    @State private var deletionFailed = false
+    @State private var logPendingDeletion: DeedLog?
     @Environment(\.modelContext) private var modelContext
+    
+    private func deleteLog(_ log: DeedLog) {
+        func showFailure() {
+            DispatchQueue.main.async {
+                deletionFailed = true
+                logPendingDeletion = log
+            }
+        }
+
+        // Preserve existing pending changes before deleting.
+        do {
+            if modelContext.hasChanges {
+                try modelContext.save()
+            }
+        } catch {
+            print("Could not prepare deletion: \(error)")
+            showFailure()
+            return
+        }
+
+        if let reading = log.linkedQuranLog(
+            in: quranLogs,
+            among: logs
+        ) {
+            modelContext.delete(reading)
+        }
+
+        modelContext.delete(log)
+
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            print("Failed to delete log: \(error)")
+            showFailure()
+        }
+    }
+    
     var formattedDay: String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: selectedLanguage)
@@ -308,48 +404,19 @@ struct DaySection: View {
                     
                     
                     Button {
-                        if log.worshipType == WorshipType.quran.rawValue {
-
-                            let matchingQuranLog = quranLogs
-                                .filter {
-                                    abs(
-                                        $0.loggedAt.timeIntervalSince(
-                                            log.loggedAt
-                                        )
-                                    ) < 10
-                                }
-                                .min {
-                                    abs(
-                                        $0.loggedAt.timeIntervalSince(
-                                            log.loggedAt
-                                        )
-                                    )
-                                    <
-                                    abs(
-                                        $1.loggedAt.timeIntervalSince(
-                                            log.loggedAt
-                                        )
-                                    )
-                                }
-
-                            if let matchingQuranLog {
-                                modelContext.delete(matchingQuranLog)
-                            }
-                        }
-
-                        modelContext.delete(log)
-
-                        do {
-                            try modelContext.save()
-                        } catch {
-                            print("Failed to delete log: \(error)")
-                        }
-
+                        deletionFailed = false
+                        logPendingDeletion = log
                     } label: {
                         Image(systemName: "trash")
-                            .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.2))
+                            .font(.system(size: 16))
+                            .foregroundColor(.white.opacity(0.65))
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(
+                        localizedString("Delete", language: selectedLanguage)
+                    )
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 8)
@@ -362,6 +429,72 @@ struct DaySection: View {
         .background(isHighlighted ?
             Color(red: 0.85, green: 0.72, blue: 0.52).opacity(0.05) :
             Color.clear
+        
         )
+        .alert(item: $logPendingDeletion) { log in
+            if deletionFailed {
+                let title: String
+                let explanation: String
+
+                switch selectedLanguage {
+                case "ar":
+                    title = "تعذّر الحذف"
+                    explanation = "لم يتم حذف التسجيل. حاول مجددًا."
+
+                case "th":
+                    title = "ลบไม่สำเร็จ"
+                    explanation = "ยังไม่ได้ลบรายการ กรุณาลองอีกครั้ง"
+
+                default:
+                    title = "Couldn’t delete"
+                    explanation = "The entry wasn’t deleted. Please try again."
+                }
+
+                return Alert(
+                    title: Text(title),
+                    message: Text(explanation),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
+
+            let message: String
+
+            switch selectedLanguage {
+            case "ar":
+                message = "هل تريد حذف هذا التسجيل وأي تفاصيل قراءة مرتبطة به؟ سيُعاد حساب تقدمك."
+            case "th":
+                message = "ลบรายการนี้และรายละเอียดการอ่านที่เชื่อมโยงหรือไม่ ระบบจะคำนวณความก้าวหน้าใหม่"
+            default:
+                message = "Delete this entry and any linked reading details? Your progress will be recalculated."
+            }
+
+            return Alert(
+                title: Text(
+                    localizedString(
+                        "Delete",
+                        language: selectedLanguage
+                    )
+                ),
+                message: Text(message),
+                primaryButton: .destructive(
+                    Text(
+                        localizedString(
+                            "Delete",
+                            language: selectedLanguage
+                        )
+                    )
+                ) {
+                    deleteLog(log)
+                },
+                secondaryButton: .cancel(
+                    Text(
+                        localizedString(
+                            "Cancel",
+                            language: selectedLanguage
+                        )
+                    )
+                )
+            )
+        }
     }
 }

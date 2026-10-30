@@ -7,7 +7,24 @@ struct AddPastLogView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("selectedLanguage") private var selectedLanguage: String = AppLanguage.english.rawValue
     @State private var selectedWorship: WorshipType = .quran
-    @State private var selectedDate: Date = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+    @State private var showSaveError = false
+    @State private var selectedDate: Date
+
+    init(initialDate: Date? = nil) {
+        let calendar = Calendar.current
+
+        let yesterday = calendar.date(
+            byAdding: .day,
+            value: -1,
+            to: Date()
+        ) ?? Date()
+
+        let requestedDate = initialDate ?? yesterday
+
+        _selectedDate = State(
+            initialValue: min(requestedDate, yesterday)
+        )
+    }
     
     var logDate: Date {
         var components = Calendar.current.dateComponents([.year, .month, .day], from: selectedDate)
@@ -100,10 +117,22 @@ struct AddPastLogView: View {
                 
                 // Log button
                 Button {
-                    let newLog = DeedLog(worshipType: selectedWorship, loggedAt: logDate)
+                    let newLog = DeedLog(
+                        worshipType: selectedWorship,
+                        loggedAt: logDate
+                    )
+
                     modelContext.insert(newLog)
-                    try? modelContext.save()
-                    dismiss()
+
+                    do {
+                        try modelContext.save()
+                        MirrorAnalytics.deedSubmitted()
+                        dismiss()
+                    } catch {
+                        // Remove this failed insertion so retrying won't duplicate it.
+                        modelContext.delete(newLog)
+                        showSaveError = true
+                    }
                 } label: {
                     Text(localizedString("Log deed", language: selectedLanguage))
                         .font(.system(size: 15, weight: .medium))
@@ -115,6 +144,24 @@ struct AddPastLogView: View {
                         .padding(.horizontal, 24)
                 }
                 .padding(.bottom, 40)
+                .alert(
+                    selectedLanguage == "ar"
+                        ? "تعذّر الحفظ"
+                        : selectedLanguage == "th"
+                            ? "บันทึกไม่สำเร็จ"
+                            : "Couldn’t save",
+                    isPresented: $showSaveError
+                ) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(
+                        selectedLanguage == "ar"
+                            ? "لم يتم حفظ العمل. اختياراتك ما زالت موجودة؛ حاول مجددًا."
+                            : selectedLanguage == "th"
+                                ? "บันทึกไม่สำเร็จ ตัวเลือกของคุณยังอยู่ กรุณาลองอีกครั้ง"
+                                : "Your deed wasn’t saved. Your selections are still here; please try again."
+                    )
+                }
             }
         }
     }
